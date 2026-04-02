@@ -2,7 +2,7 @@ import SwiftUI
 
 
 enum Tab {
-    case home, feed, map, chat, profile
+    case home, adopt, map, chat, profile
 }
 
 struct MainTabView: View {
@@ -31,10 +31,10 @@ struct MainTabView: View {
                             Image(selectedTab == .home ? "home" : "home-2")
                         }
                     
-                    FeedView()
-                        .tag(Tab.feed)
+                        AdoptView()
+                        .tag(Tab.adopt)
                         .tabItem {
-                            Image(selectedTab == .feed ? "favorite" : "pawprint_bos 1")
+                            Image(selectedTab == .adopt ? "favorite" : "pawprint_bos 1")
                         }
                     Spacer()
                     
