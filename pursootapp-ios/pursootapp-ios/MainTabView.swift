@@ -8,6 +8,7 @@ enum Tab {
 struct MainTabView: View {
     
     @State private var selectedTab: Tab = .home
+    @State private var showMap = false
     
     init() {
         let appearance = UITabBarAppearance()
@@ -20,58 +21,49 @@ struct MainTabView: View {
     
     var body: some View {
         ZStack {
-            VStack{
             
-            // TAB VIEW
-                TabView(selection: $selectedTab) {
-                    
-                    HomeView()
-                        .tag(Tab.home)
-                        .tabItem {
-                            Image(selectedTab == .home ? "home" : "home-2")
-                        }
-                    
-                        AdoptView()
-                        .tag(Tab.adopt)
-                        .tabItem {
-                            Image(selectedTab == .adopt ? "favorite" : "pawprint_bos 1")
-                        }
-                    Spacer()
-                    
-                    ChatView()
-                        .tag(Tab.chat)
-                        .tabItem {
-                            Image(selectedTab == .chat ? "chat_bubble-3" : "chat_bubble-2")
-                        }
-                    
-                    ProfileView()
-                        .tag(Tab.profile)
-                        .tabItem {
-                            Image(selectedTab == .profile ? "person-2" : "person")
-                            
-                        }
-                   
-                }
+            TabView(selection: $selectedTab) {
                 
+                HomeView()
+                    .tag(Tab.home)
+                    .tabItem {
+                        Image(selectedTab == .home ? "home" : "home-2")
+                    }
                 
+                AdoptView()
+                    .tag(Tab.adopt)
+                    .tabItem {
+                        Image(selectedTab == .adopt ? "favorite" : "pawprint_bos 1")
+                    }
+                Spacer()
+                
+                ChatView()
+                    .tag(Tab.chat)
+                    .tabItem {
+                        Image(selectedTab == .chat ? "chat_bubble-3" : "chat_bubble-2")
+                    }
+                
+                ProfileView()
+                    .tag(Tab.profile)
+                    .tabItem {
+                        Image(selectedTab == .profile ? "person-2" : "person")
+                    }
             }
             
             
-         
             VStack {
                 Spacer()
                 
                 HStack {
                     Spacer()
                     
-                    Button(action: {
-                        selectedTab = .map
-                    }) {
+                    Button {
+                        showMap = true
+                    } label: {
                         Image("map outline black1")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 35, height: 35)
-                        //boyutu değiştirebiliriz büyük olunca pixelli oluyor
                             .padding()
                             .background(Color.customMediumSage)
                             .clipShape(Circle())
@@ -80,8 +72,11 @@ struct MainTabView: View {
                     
                     Spacer()
                 }
-                
+               
             }
+        }
+        .fullScreenCover(isPresented: $showMap) {
+            MapView()
         }
     }
 }
