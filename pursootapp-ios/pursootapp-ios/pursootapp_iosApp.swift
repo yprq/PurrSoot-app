@@ -11,7 +11,7 @@ import SwiftUI
 struct pursootapp_iosApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
