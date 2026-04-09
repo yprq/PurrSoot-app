@@ -13,11 +13,7 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            Color(
-                red: 102/255,
-                green: 123/255,
-                blue: 104/255
-            )
+            Color.customDarkSage
                 .ignoresSafeArea()
 
             VStack {
@@ -85,7 +81,7 @@ struct WelcomeView: View {
                     Button(action: onSignUpTap) {
                         Text("Sign Up")
                             .font(Font.custom("Poppins-Regular", size: 20))
-                            .foregroundColor(Color(red: 110/255, green: 132/255, blue: 106/255))
+                            .foregroundColor(Color.customDarkSage)
                             .frame(maxWidth: .infinity)
                             .frame(height: 72)
                             .background(Color.white.opacity(0.95))

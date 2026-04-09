@@ -49,6 +49,8 @@ struct MainTabView: View {
                         Image(selectedTab == .profile ? "person-2" : "person")
                     }
             }
+            .toolbarBackground(Color.customLightSage, for: .tabBar)
+            .toolbarBackground(.visible, for: .tabBar)
             
             
             VStack {

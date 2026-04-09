@@ -90,13 +90,13 @@ struct SignUpView: View {
                                         if isAgreed {
                                             Image(systemName: "checkmark")
                                                 .font(.system(size: 14, weight: .bold))
-                                                .foregroundColor(Color(red: 110/255, green: 132/255, blue: 106/255))
+                                                .foregroundColor(Color.customDarkSage)
                                         }
                                     }
 
                                     Text("I agree with terms & conditions")
                                         .font(.custom("Poppins-Regular", size: 16))
-                                        .foregroundColor(Color(red: 54/255, green: 71/255, blue: 89/255))
+                                        .foregroundColor(Color.customDarkSage)
 
                                     Spacer()
                                 }
@@ -109,19 +109,11 @@ struct SignUpView: View {
                         Button(action: {}) {
                             Text("Sign Up")
                                 .font(.custom("Poppins-SemiBold", size: 20))
-                                .foregroundColor(Color(
-                                    red: 102/255,
-                                    green: 123/255,
-                                    blue: 104/255
-                                ))
+                                .foregroundColor(Color.customDarkSage)
                                 .frame(width: 285, height: 72)
                                 .overlay(
                                     Capsule()
-                                        .stroke(Color(
-                                            red: 102/255,
-                                            green: 123/255,
-                                            blue: 104/255
-                                        ), lineWidth: 3)
+                                        .stroke(Color.customDarkSage, lineWidth: 3)
                                 )
                         }
                         .padding(.top, 48)
@@ -145,11 +137,7 @@ struct SignUpView: View {
                             Button(action: onSignInTap) {
                                 Text("Sign In")
                                     .font(.custom("Poppins-Regular", size: 16))
-                                    .foregroundColor(Color(
-                                        red: 102/255,
-                                        green: 123/255,
-                                        blue: 104/255
-                                    ))
+                                    .foregroundColor(Color.customDarkSage)
                             }
                         }
                         .padding(.top, 36)

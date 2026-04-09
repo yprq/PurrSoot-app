@@ -7,12 +7,6 @@ struct SignInView: View {
     @State private var email = ""
     @State private var password = ""
 
-    private let primaryGreen = Color(
-        red: 102/255,
-        green: 123/255,
-        blue: 104/255
-    )
-
     var body: some View {
         ZStack {
             Color(red: 246/255, green: 246/255, blue: 246/255)
@@ -82,7 +76,7 @@ struct SignInView: View {
 
                                 Button("Forgot Password?") { }
                                     .font(.custom("Poppins-Regular", size: 16))
-                                    .foregroundColor(primaryGreen)
+                                    .foregroundColor(Color.customDarkSage)
                                     .underline()
                             }
                             .padding(.top, 10)
@@ -95,7 +89,7 @@ struct SignInView: View {
                                 .font(.custom("Poppins-SemiBold", size: 20))
                                 .foregroundColor(.white)
                                 .frame(width: 285, height: 72)
-                                .background(primaryGreen)
+                                .background(Color.customDarkSage)
                                 .clipShape(Capsule())
                         }
                         .padding(.top, 48)
@@ -119,7 +113,7 @@ struct SignInView: View {
                             Button(action: onSignUpTap) {
                                 Text("Sign Up")
                                     .font(.custom("Poppins-Regular", size: 16))
-                                    .foregroundColor(primaryGreen)
+                                    .foregroundColor(Color.customDarkSage)
                             }
                         }
                         .padding(.top, 36)
