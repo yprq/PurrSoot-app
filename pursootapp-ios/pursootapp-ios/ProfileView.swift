@@ -24,52 +24,91 @@ struct ProfileView: View {
     @State private var donationCount = "3k+"
     @State private var adoptedCount = "1"
     @State private var feedingCount = "72"
+    @State private var userLocation = ""
+    @State private var isLocationVisible = true
+
+    // Volunteering
+    @State private var isVolunteeringActive = false
+
+    // Pet Preferences (Filtreler)
+    @State private var petType = "Hepsi"
+    @State private var petAge = 1
     
     var body: some View {
-        ZStack {
-            Color(.systemGray6).ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        Spacer()
-                        Text("Profile").font(.headline).fontWeight(.bold)
-                        Spacer()
-                        Button(action: { showSettings = true }) {
-                            Image(systemName: "slider.horizontal.3")
-                                .foregroundColor(.primary)
+        NavigationStack {
+            ZStack {
+                Color(.systemGray6).ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Header
+                        HStack {
+                            Spacer()
+                            Text("Profile").font(.headline).fontWeight(.bold)
+                            Spacer()
+                            Button(action: { showSettings = true }) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundColor(.primary)
+                            }
                         }
-                    }
-                    .padding(.horizontal)
-                    
-                    // 1. KISIM: Profil Kartı
-                    ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
-                    
-                    // 2. KISIM: İstatistikler
-                    StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
-                    
-                    // 3. KISIM: Menü Grupları
-                    VStack(spacing: 25) {
-                        ProfileMenuSection(title: "Account security", items: [
-                            MenuItem(icon: "person", text: "Profile Info"),
-                            MenuItem(icon: "lock", text: "Forgot Password"),
-                            MenuItem(icon: "checkmark.circle", text: "Phone Number Verification", isVerified: true)
-                        ])
+                        .padding(.horizontal)
                         
-                        ProfileMenuSection(title: "User Preferences", items: [
-                            MenuItem(icon: "pawprint", text: "Pet Preferences"),
-                            MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility")
-                        ])
+                        // 1. KISIM: Profil Kartı
+                        ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
+                        
+                        // 2. KISIM: İstatistikler
+                        StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
+                        
+                        // 3. KISIM: Menü Grupları
+                        VStack(spacing: 25) {
+                            // ProfileView'ın body'si içinde, StatisticsRow'un hemen altına:
+                            // ProfileView İÇİNDEKİ ScrollView -> VStack İÇİNE:
+
+                            // 1. Kutu: Account Security (Eski hatalı çağırma yerine bunu koy)
+                            ProfileMenuSection(title: "Account security") {
+                                NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
+                                    MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
+                                }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: ForgotPasswordView()) {
+                                    MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
+                                }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: ResetPasswordView()) {
+                                        MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: PhoneVerificationView()) {
+                                    MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
+                                }.buttonStyle(.plain)
+                            }
+
+                            // 2. Kutu: User Preferences (Burası da hata veriyordu, bunu koy)
+                            ProfileMenuSection(title: "User Preferences") {
+                                NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
+                                        MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
+                                        MenuItemRow(item: MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
+                                        MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
+                                    }.buttonStyle(.plain)
+                            }
+                            
+                            // 57. satırdaki hatalı yeri bul ve parantez içini böyle doldur:
+                            
+                        }
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
+                    .padding()
+                    .sheet(isPresented: $showSettings) {
+                        EditProfileView(name: $userName, email: $userEmail)
+                    }
                 }
-                .padding()
-                .sheet(isPresented: $showSettings) {
-                    EditProfileView(name: $userName, email: $userEmail)
-                }
-            }
-        }
+            }}
         // SEÇENEK MENÜSÜ (Confirmation Dialog)
         .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
             Button("Kamera ile Çek") {
@@ -220,21 +259,26 @@ struct EditProfileView: View {
     }
 }
 
-struct ProfileMenuSection: View {
-    let title: String; let items: [MenuItem]
+struct ProfileMenuSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.subheadline).foregroundColor(.gray).padding(.leading, 5)
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+                .padding(.leading, 5)
+            
             VStack(spacing: 18) {
-                ForEach(items) { item in
-                    MenuItemRow(item: item)
-                }
+                content() // İçeriği dışarıdan alıp buraya basar
             }
-            .padding().background(Color.green.opacity(0.05)).cornerRadius(20)
+            .padding()
+            .background(Color.green.opacity(0.05))
+            .cornerRadius(20)
         }
     }
 }
-
 struct MenuItemRow: View {
     let item: MenuItem
     var body: some View {
@@ -301,6 +345,103 @@ struct ProfileInfoView: View {
             LabeledContent("Katılım", value: "Nisan 2026")
         }
         .navigationTitle("Profile Info")
+    }
+}
+
+struct PhoneVerificationView:  View {
+    @State private var phoneNumber = ""
+    @State private var verificationCode = ""
+    @State private var isCodeSent = false
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        Form {
+            if !isCodeSent {
+                Section(header: Text("Telefon Numaranı Doğrula")) {
+                    TextField("Telefon Numarası (Örn: 05xx)", text: $phoneNumber)
+                        .keyboardType(.phonePad)
+                        .onAppear {
+                                // Sayfa açıldığında otomatik odaklanması için (Opsiyonel)
+                            }
+                    
+                    
+                    Button(action: { isCodeSent = true }) {
+                        Text("Onay Kodu Gönder")
+                            .fontWeight(.semibold)
+                    }
+                }
+            } else {
+                Section(header: Text("SMS Kodunu Gir"), footer: Text("\(phoneNumber) numarasına gönderilen 6 haneli kodu giriniz.")) {
+                    TextField("Onay Kodu", text: $verificationCode)
+                        .keyboardType(.numberPad)
+                    
+                    Button(action: {
+                        // Burada doğrulama mantığı çalışır
+                        dismiss()
+                    }) {
+                        Text("Doğrula ve Bitir")
+                            .fontWeight(.semibold)
+                    }
+                    
+                    Button("Kodu Tekrar Gönder") {
+                        // Yeniden gönderme fonksiyonu
+                    }
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                }
+            }
+        }
+        .navigationTitle("Phone Verification")
+    }
+}
+
+// --- LOCATION & ACCESSIBILITY ---
+struct LocationSettingsView: View {
+    @Binding var location: String
+    @Binding var isVisible: Bool
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Konum Bilgileri")) {
+                TextField("Şehir/Semt Giriniz", text: $location)
+                Toggle("Konumum Diğer Kullanıcılara Görünsün", isOn: $isVisible)
+            }
+        }
+        .navigationTitle("Location")
+    }
+}
+
+struct VolunteeringSettingsView: View {
+    @Binding var isActive: Bool
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Gönüllülük Durumu")) {
+                Toggle("Gönüllü Olmak İstiyorum", isOn: $isActive)
+                    .tint(.green)
+            }
+        }
+        .navigationTitle("Volunteering")
+    }
+}
+
+// --- SADECE PET FİLTRELERİ ---
+struct PetPreferencesView: View {
+    @Binding var type: String
+    @Binding var age: Int
+    let petTypes = ["Kedi", "Köpek", "Kuş", "Hepsi"]
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Filtre Tercihleriniz")) {
+                Picker("Tercih Edilen Tür", selection: $type) {
+                    ForEach(petTypes, id: \.self) { Text($0) }
+                }
+                
+                Stepper("Yaş Tercihi: \(age)", value: $age, in: 1...20)
+            }
+        }
+        .navigationTitle("Pet Preferences")
     }
 }
 
