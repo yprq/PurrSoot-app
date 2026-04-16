@@ -3,6 +3,7 @@ import SwiftUI
 struct SignInView: View {
     let onBackTap: () -> Void
     let onSignUpTap: () -> Void
+    let onSignInSuccess: () -> Void
 
     @State private var email = ""
     @State private var password = ""
@@ -84,7 +85,9 @@ struct SignInView: View {
                         .padding(.horizontal, 36)
                         .padding(.top, 48)
 
-                        Button(action: {}) {
+                        Button(action: {
+                            onSignInSuccess()
+                        }) {
                             Text("Sign In")
                                 .font(.custom("Poppins-SemiBold", size: 20))
                                 .foregroundColor(.white)
@@ -136,5 +139,9 @@ struct SignInView: View {
 }
 
 #Preview {
-    SignInView(onBackTap: {}, onSignUpTap: {})
+    SignInView(
+        onBackTap: {},
+        onSignUpTap: {},
+        onSignInSuccess: {}
+    )
 }
