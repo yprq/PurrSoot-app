@@ -137,7 +137,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				170471032F7D919700BF1429 /* pursootapp-ios */,
-				191D6D262F92473800B7ED3A /* pursoot-backend */,
 			);
 			name = "pursootapp-ios";
 			packageProductDependencies = (
