@@ -189,6 +189,7 @@ struct MapView: View {
                 Spacer()
             }
         }
+        //sedacım ebn senin kanınım beni reddetme
         .sheet(isPresented: $showPicker) {
             ImagePicker(image: $selectedImage)
         }
