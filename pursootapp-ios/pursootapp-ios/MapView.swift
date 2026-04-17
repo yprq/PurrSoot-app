@@ -1,14 +1,19 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+import UIKit
 
+// MARK: - MapPin Model
 struct MapPin: Identifiable {
     let id = UUID()
     let coordinate: CLLocationCoordinate2D
 }
 
+// MARK: - MapView
 struct MapView: View {
-    // Yeni Map API'si için kamera pozisyonu
+    
+    @Binding var isPresented: Bool
+    
     @State private var position: MapCameraPosition = .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
@@ -23,35 +28,31 @@ struct MapView: View {
     @State private var showPicker = false
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            
-            // 1. GÜNCEL HARİTA (iOS 17+ API)
-            MapReader { proxy in // Haritadan koordinat okumak için
+        ZStack {
+            // 1. MAP LAYER
+            MapReader { proxy in
                 Map(position: $position) {
-                    // Eğer bir konum seçildiyse marker koy
                     if let pin = selectedLocation {
                         Marker("Selected Location", coordinate: pin.coordinate)
                             .tint(.gray)
                     }
                 }
                 .onTapGesture { screenPoint in
-                    // Haritaya dokunulan noktanın koordinatını al
                     if let coordinate = proxy.convert(screenPoint, from: .local) {
                         selectedLocation = MapPin(coordinate: coordinate)
-                        getAddress(from: coordinate) // Adresi güncelle
+                        getAddress(from: coordinate)
                     }
                 }
             }
             .ignoresSafeArea()
             
-            // 2. KAYDIRILABİLİR PANEL
+            // 2. SCROLLABLE PANEL LAYER
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     
-                    // ÖNEMLİ: Haritaya dokunabilmek için bu boşluğun dokunmaları geçirmesi lazım
                     Color.clear
                         .frame(height: UIScreen.main.bounds.height * 0.50)
-                        .allowsHitTesting(false) // Dokunmalar haritaya "geçsin"
+                        .allowsHitTesting(false)
                     
                     VStack(alignment: .leading, spacing: 20) {
                         
@@ -123,7 +124,6 @@ struct MapView: View {
                         
                         Divider().padding(.vertical, 10)
                         
-                        // --- VETERİNER BÖLÜMÜ ---
                         VStack(alignment: .leading, spacing: 15) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Find Vets near you")
@@ -166,15 +166,35 @@ struct MapView: View {
                     .background(Color.white)
                     .cornerRadius(32, corners: [.topLeft, .topRight])
                 }
-                
+            }
+            
+            // 3. NAVIGATION LAYER (BACK BUTTON) - En üstte olmalı
+            VStack {
+                HStack {
+                    Button {
+                        isPresented = false
+                    } label: {
+                        Image(systemName: "arrow.left")
+                            .font(.title3)
+                            .foregroundColor(.black)
+                            .padding(10)
+                            .background(Color.white.opacity(0.9))
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    Spacer()
+                }
+                .padding(.top, 50)
+                .padding(.horizontal, 20)
+                Spacer()
             }
         }
+        //sedacım ebn senin kanınım beni reddetme
         .sheet(isPresented: $showPicker) {
             ImagePicker(image: $selectedImage)
         }
     }
     
-    // Adres Bulma Fonksiyonu
     func getAddress(from coordinate: CLLocationCoordinate2D) {
         let geocoder = CLGeocoder()
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
@@ -188,7 +208,24 @@ struct MapView: View {
     }
 }
 
-// MARK: - Helpers (Değiştirmediğim kısımlar)
+// MARK: - Helpers & Extensions
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    func path(in rect: CGRect) -> Path {
+        Path(UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        ).cgPath)
+    }
+}
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
@@ -209,21 +246,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 }
 
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
-        return Path(path.cgPath)
-    }
-}
-
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
+// MARK: - Preview
 #Preview {
-    MapView()
+    MapView(isPresented: .constant(true))
 }

@@ -78,7 +78,7 @@ struct MainTabView: View {
             }
         }
         .fullScreenCover(isPresented: $showMap) {
-            MapView()
+            MapView(isPresented: $showMap)
         }
     }
 }
