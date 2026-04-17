@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		191D6D242F9243F800B7ED3A /* docker-compose.yml in Resources */ = {isa = PBXBuildFile; fileRef = 191D6D232F9243E600B7ED3A /* docker-compose.yml */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		1704710F2F7D919900BF1429 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		170471012F7D919700BF1429 /* pursootapp-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "pursootapp-ios.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1704710E2F7D919900BF1429 /* pursootapp-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "pursootapp-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		170471182F7D919900BF1429 /* pursootapp-iosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "pursootapp-iosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		191D6D232F9243E600B7ED3A /* docker-compose.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "docker-compose.yml"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -56,6 +61,11 @@
 		1704711B2F7D919900BF1429 /* pursootapp-iosUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "pursootapp-iosUITests";
+			sourceTree = "<group>";
+		};
+		191D6D262F92473800B7ED3A /* pursoot-backend */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "pursoot-backend";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +98,8 @@
 		170470F82F7D919700BF1429 = {
 			isa = PBXGroup;
 			children = (
+				191D6D232F9243E600B7ED3A /* docker-compose.yml */,
+				191D6D262F92473800B7ED3A /* pursoot-backend */,
 				170471032F7D919700BF1429 /* pursootapp-ios */,
 				170471112F7D919900BF1429 /* pursootapp-iosTests */,
 				1704711B2F7D919900BF1429 /* pursootapp-iosUITests */,
@@ -122,6 +134,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				170471032F7D919700BF1429 /* pursootapp-ios */,
+				191D6D262F92473800B7ED3A /* pursoot-backend */,
 			);
 			name = "pursootapp-ios";
 			packageProductDependencies = (
@@ -225,6 +238,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				191D6D242F9243F800B7ED3A /* docker-compose.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
