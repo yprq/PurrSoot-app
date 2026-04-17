@@ -1,143 +1,277 @@
 import SwiftUI
+import PhotosUI
 
-// --- MODELLER (Eksik olan veri yapıları) ---
+// --- MODELLER ---
 struct MenuItem: Identifiable {
     let id = UUID()
     let icon: String
     let text: String
     var isVerified: Bool = false
+    var status: Bool = true
 }
 
 // --- ANA EKRAN ---
 struct ProfileView: View {
+    @State private var showOptions = false             // Menüyü açan anahtar
+    @State private var showGallery = false             // Galeriyi açan anahtar
+    @State private var showCamera = false
+    // Kamerayı açan anahtar
+    @State private var showSettings = false
+    @State private var userName = "James Parlor"
+    @State private var userEmail = "jamesparlor@gmail.com"
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var profileImage: Image? = Image("Robert_Pattinson")
+    @State private var donationCount = "3k+"
+    @State private var adoptedCount = "1"
+    @State private var feedingCount = "72"
+    @State private var userLocation = ""
+    @State private var isLocationVisible = true
+
+    // Volunteering
+    @State private var isVolunteeringActive = false
+
+    // Pet Preferences (Filtreler)
+    @State private var petType = "Hepsi"
+    @State private var petAge = 1
+    
     var body: some View {
-        ZStack {
-            // Arka Plan (Assets'te "AppBackground" yoksa açık gri renk basar)
-            Color("AppBackground")
-                .overlay(Color.gray.opacity(0.05))
-                .ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        Spacer()
-                        Text("Profile")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        Spacer()
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                    .padding(.horizontal)
-
-                    ProfileHeaderCard()
-
-                    StatisticsRow()
-
-                    // Menü Grupları
-                    VStack(spacing: 25) {
-                        ProfileMenuSection(title: "Account security", items: [
-                            MenuItem(icon: "person", text: "Profile Info"),
-                            MenuItem(icon: "lock", text: "Forgot Password"),
-                            MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"),
-                            MenuItem(icon: "checkmark.circle", text: "Phone Number Verification", isVerified: true)
-                        ])
+        NavigationStack {
+            ZStack {
+                Color(.systemGray6).ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Header
+                        HStack {
+                            Spacer()
+                            Text("Profile").font(.headline).fontWeight(.bold)
+                            Spacer()
+                            Button(action: { showSettings = true }) {
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding(.horizontal)
                         
-                        ProfileMenuSection(title: "User Preferences", items: [
-                            MenuItem(icon: "pawprint", text: "Pet Preferences"),
-                            MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"),
-                            MenuItem(icon: "person.2", text: "Volunteering")
-                        ])
+                        // 1. KISIM: Profil Kartı
+                        ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
+                        
+                        // 2. KISIM: İstatistikler
+                        StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
+                        
+                        // 3. KISIM: Menü Grupları
+                        VStack(spacing: 25) {
+                            // ProfileView'ın body'si içinde, StatisticsRow'un hemen altına:
+                            // ProfileView İÇİNDEKİ ScrollView -> VStack İÇİNE:
+
+                            // 1. Kutu: Account Security (Eski hatalı çağırma yerine bunu koy)
+                            ProfileMenuSection(title: "Account security") {
+                                NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
+                                    MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
+                                }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: ForgotPasswordView()) {
+                                    MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
+                                }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: ResetPasswordView()) {
+                                        MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: PhoneVerificationView()) {
+                                    MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
+                                }.buttonStyle(.plain)
+                            }
+
+                            // 2. Kutu: User Preferences (Burası da hata veriyordu, bunu koy)
+                            ProfileMenuSection(title: "User Preferences") {
+                                NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
+                                        MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
+                                        MenuItemRow(item: MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"))
+                                    }.buttonStyle(.plain)
+                                
+                                NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
+                                        MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
+                                    }.buttonStyle(.plain)
+                            }
+                            
+                            // 57. satırdaki hatalı yeri bul ve parantez içini böyle doldur:
+                            
+                        }
+                        .padding(.top, 10)
                     }
-                    .padding(.top, 10)
+                    .padding()
+                    .sheet(isPresented: $showSettings) {
+                        EditProfileView(name: $userName, email: $userEmail)
+                    }
                 }
-                .padding()
+            }}
+        // SEÇENEK MENÜSÜ (Confirmation Dialog)
+        .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
+            Button("Kamera ile Çek") {
+                showCamera = true
+            }
+            Button("Galeriden Seç") {
+                showGallery = true
+            }
+            if profileImage != nil {
+                Button("Fotoğrafı Kaldır", role: .destructive) {
+                    profileImage = nil
+                    selectedItem = nil
+                }
+            }
+            Button("İptal", role: .cancel) { }
+        }
+        // GALERİ TETİKLEYİCİ
+        .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
+        // KAMERA TETİKLEYİCİ (Not: SwiftUI'da hazır kamera yoktur, aşağıda basit bir çözüm ekledim)
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPlaceholderView(image: $profileImage)
+        }
+        // Galeri seçimi sonrası resmi yükleme
+        .onChange(of: selectedItem) { newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    profileImage = Image(uiImage: uiImage)
+                }
             }
         }
     }
 }
 
-// --- BİLEŞENLER (Components) ---
+// --- BİLEŞENLER ---
 
 struct ProfileHeaderCard: View {
+    @Binding var showOptions: Bool
+    let profileImage: Image?
+    let name: String  // Bunu ekle
+    let email: String
+    
     var body: some View {
         HStack(spacing: 15) {
-            // James'in resmi yoksa diye placeholder koydum
-            Image(systemName: "person.crop.circle.fill")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 70, height: 70)
-                .foregroundColor(.gray)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 2))
+            ZStack {
+                if let image = profileImage {
+                    image.resizable().scaledToFill()
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .foregroundColor(.gray)
+                }
+            }
+            .frame(width: 70, height: 70)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+            .onTapGesture { showOptions = true }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("James Parlor")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                Text("jamesparlor@gmail.com")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                Text(name)
+                Text(email)
             }
             Spacer()
         }
         .padding()
-        .background(Color.green.opacity(0.1)) // CardGreen yerine şimdilik direkt renk
+        .background(Color.green.opacity(0.1))
         .cornerRadius(25)
     }
 }
 
-struct StatisticsRow: View {
+// Kamera için Geçici Görünüm (Gerçek kamera için UIViewControllerRepresentable gerekir)
+struct CameraPlaceholderView: View {
+    @Binding var image: Image?
+    @Environment(\.dismiss) var dismiss
+    
     var body: some View {
-        HStack(spacing: 12) {
-            StatBox(value: "3k+", title: "Donation", icon: "heart.fill")
-            StatBox(value: "1", title: "Adopted", icon: "pawprint.fill")
-            StatBox(value: "72", title: "Feeding", icon: "leaf.fill")
+        VStack(spacing: 20) {
+            Text("Kamera Modülü").font(.title)
+            Text("Simülatörde kamera çalışmaz, gerçek cihaz gerekir.")
+                .multilineTextAlignment(.center).padding()
+            Button("Kapat") { dismiss() }
+                .padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
         }
+    }
+}
+
+// --- DİĞER BİLEŞENLER (StatisticsRow, StatBox, MenuSection aynen kalıyor) ---
+struct StatisticsRow: View {
+    let donation: String
+    let adopted: String
+    let feeding: String
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            StatBox(value: donation, title: "Donation", icon: "volunteer_activism")
+            Divider().frame(height: 30)
+            StatBox(value: adopted, title: "Adopted", icon: "pets")
+            Divider().frame(height: 30)
+            StatBox(value: feeding, title: "Feeding", icon: "gift")
+        }
+        .padding(12)
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(20)
     }
 }
 
 struct StatBox: View {
-    let value: String
-    let title: String
-    let icon: String
-    
+    let value: String; let title: String; let icon: String
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(value)
-                .font(.headline)
-                .fontWeight(.bold)
+            Text(value).font(.headline).fontWeight(.bold)
             HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 10))
-                Text(title)
-                    .font(.caption2)
+                Image(icon) // systemName: kısmını sildik
+                        .resizable() // Boyutlandırılabilir yaptık
+                        .scaledToFit()
+                        .frame(width: 12, height: 12)
+                        .padding(8) // İkon ile kare kenarı arasındaki boşluk
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.green.opacity(0.5)) // Biraz daha koyu yeşil (opaklığı artırabilirsin)
+                                        )
+                    
+                    Text(title).font(.caption2)
             }
             .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color.white)
-        .cornerRadius(15)
-        .shadow(color: Color.black.opacity(0.05), radius: 5)
+        .padding(10).background(Color.white).cornerRadius(15).shadow(color: Color.black.opacity(0.05), radius: 5)
     }
 }
 
-struct ProfileMenuSection: View {
-    let title: String
-    let items: [MenuItem]
+struct EditProfileView: View {
+    @Binding var name: String   // Ana sayfadaki userName'e bağlı
+    @Binding var email: String  // Ana sayfadaki userEmail'e bağlı
+    @Environment(\.dismiss) var dismiss // Sayfayı kapatmak için
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        NavigationView {
+            Form {
+                Section(header: Text("Kullanıcı Bilgileri")) {
+                    TextField("Ad Soyad", text: $name)
+                    TextField("E-posta", text: $email)
+                }
+            }
+            .navigationTitle("Profili Düzenle")
+            .navigationBarItems(trailing: Button("Bitti") { dismiss() })
+        }
+    }
+}
+
+struct ProfileMenuSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.subheadline)
                 .foregroundColor(.gray)
                 .padding(.leading, 5)
             
             VStack(spacing: 18) {
-                ForEach(items) { item in
-                    MenuItemRow(item: item)
-                }
+                content() // İçeriği dışarıdan alıp buraya basar
             }
             .padding()
             .background(Color.green.opacity(0.05))
@@ -145,28 +279,173 @@ struct ProfileMenuSection: View {
         }
     }
 }
-
 struct MenuItemRow: View {
     let item: MenuItem
-    
     var body: some View {
         HStack {
-            Text(item.text)
-                .font(.system(size: 16))
+            Image(systemName: item.icon).foregroundColor(.green.opacity(0.7)).frame(width: 25)
+            Text(item.text).font(.system(size: 16))
             Spacer()
             if item.isVerified {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+                Image(systemName: item.status ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundColor(item.status ? .green : .red)
             } else {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.gray)
+                Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
             }
         }
     }
 }
 
-// --- PREVIEW ---
+// --- ŞİFRE SIFIRLAMA EKRANI ---
+struct ResetPasswordView: View {
+    @State private var oldPass = ""
+    @State private var newPass = ""
+    @State private var confirmPass = ""
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Şifre Değiştir")) {
+                SecureField("Eski Şifre", text: $oldPass)
+                SecureField("Yeni Şifre", text: $newPass)
+                SecureField("Yeni Şifre (Tekrar)", text: $confirmPass)
+            }
+            Button("Güncelle") { /* Güncelleme mantığı */ }
+        }
+        .navigationTitle("Reset Password")
+    }
+}
+
+// --- ŞİFREMİ UNUTTUM EKRANI ---
+struct ForgotPasswordView: View {
+    @State private var email = ""
+    
+    var body: some View {
+        Form {
+            Section(header: Text("E-posta adresinize sıfırlama linki gönderilecek")) {
+                TextField("E-posta", text: $email)
+            }
+            Button("Gönder") { /* Mail atma mantığı */ }
+        }
+        .navigationTitle("Forgot Password")
+    }
+}
+
+// --- PROFİL BİLGİLERİ EKRANI ---
+struct ProfileInfoView: View {
+    // Buraya ne koyacağını bilemediğin için: Genellikle kullanıcı adı, e-posta,
+    // katılım tarihi ve varsa "Bio" kısmı gösterilir.
+    let name: String
+    let email: String
+    
+    var body: some View {
+        List {
+            LabeledContent("Ad Soyad", value: name)
+            LabeledContent("E-posta", value: email)
+            LabeledContent("Üyelik Tipi", value: "Premium")
+            LabeledContent("Katılım", value: "Nisan 2026")
+        }
+        .navigationTitle("Profile Info")
+    }
+}
+
+struct PhoneVerificationView:  View {
+    @State private var phoneNumber = ""
+    @State private var verificationCode = ""
+    @State private var isCodeSent = false
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        Form {
+            if !isCodeSent {
+                Section(header: Text("Telefon Numaranı Doğrula")) {
+                    TextField("Telefon Numarası (Örn: 05xx)", text: $phoneNumber)
+                        .keyboardType(.phonePad)
+                        .onAppear {
+                                // Sayfa açıldığında otomatik odaklanması için (Opsiyonel)
+                            }
+                    
+                    
+                    Button(action: { isCodeSent = true }) {
+                        Text("Onay Kodu Gönder")
+                            .fontWeight(.semibold)
+                    }
+                }
+            } else {
+                Section(header: Text("SMS Kodunu Gir"), footer: Text("\(phoneNumber) numarasına gönderilen 6 haneli kodu giriniz.")) {
+                    TextField("Onay Kodu", text: $verificationCode)
+                        .keyboardType(.numberPad)
+                    
+                    Button(action: {
+                        // Burada doğrulama mantığı çalışır
+                        dismiss()
+                    }) {
+                        Text("Doğrula ve Bitir")
+                            .fontWeight(.semibold)
+                    }
+                    
+                    Button("Kodu Tekrar Gönder") {
+                        // Yeniden gönderme fonksiyonu
+                    }
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                }
+            }
+        }
+        .navigationTitle("Phone Verification")
+    }
+}
+
+// --- LOCATION & ACCESSIBILITY ---
+struct LocationSettingsView: View {
+    @Binding var location: String
+    @Binding var isVisible: Bool
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Konum Bilgileri")) {
+                TextField("Şehir/Semt Giriniz", text: $location)
+                Toggle("Konumum Diğer Kullanıcılara Görünsün", isOn: $isVisible)
+            }
+        }
+        .navigationTitle("Location")
+    }
+}
+
+struct VolunteeringSettingsView: View {
+    @Binding var isActive: Bool
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Gönüllülük Durumu")) {
+                Toggle("Gönüllü Olmak İstiyorum", isOn: $isActive)
+                    .tint(.green)
+            }
+        }
+        .navigationTitle("Volunteering")
+    }
+}
+
+// --- SADECE PET FİLTRELERİ ---
+struct PetPreferencesView: View {
+    @Binding var type: String
+    @Binding var age: Int
+    let petTypes = ["Kedi", "Köpek", "Kuş", "Hepsi"]
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Filtre Tercihleriniz")) {
+                Picker("Tercih Edilen Tür", selection: $type) {
+                    ForEach(petTypes, id: \.self) { Text($0) }
+                }
+                
+                Stepper("Yaş Tercihi: \(age)", value: $age, in: 1...20)
+            }
+        }
+        .navigationTitle("Pet Preferences")
+    }
+}
+
+// --- PREVIEWS ---
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView()
