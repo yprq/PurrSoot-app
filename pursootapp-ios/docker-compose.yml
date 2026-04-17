@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: yapdilse
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: pursoot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pursoot-backend/init-scripts:/docker-entrypoint-initdb.d/
+
+  api:
+    build: ./pursoot-backend/api-node
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      PYTHON_MODEL_URL: http://models:5000
+
+  models:
+    build: ./pursoot-backend/models-python
+    ports:
+      - "5001:5000"
+    depends_on:
+      - db
