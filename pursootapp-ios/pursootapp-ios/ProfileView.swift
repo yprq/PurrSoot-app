@@ -38,7 +38,7 @@ struct ProfileView: View {
     @State private var isVolunteeringActive = false
 
     // Pet Preferences (Filtreler)
-    @State private var petType = "Hepsi"
+    @State private var petType = "All"
     @State private var petAge = 1
     
     var body: some View {
@@ -121,10 +121,10 @@ struct ProfileView: View {
                 .sheet(isPresented: $showSettings) {
                     EditProfileView(name: $userName, email: $userEmail)
                 }
-                .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
-                    Button("Kamera") { showCamera = true }
-                    Button("Galeri") { showGallery = true }
-                    Button("İptal", role: .cancel) { }
+                .confirmationDialog("Profile Photo", isPresented: $showOptions, titleVisibility: .visible) {
+                    Button("Camera") { showCamera = true }
+                    Button("Gallery") { showGallery = true }
+                    Button("Cancel", role: .cancel) { }
                 }
             } // NavigationStack sonu
             .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
@@ -198,10 +198,10 @@ struct CameraPlaceholderView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Kamera Modülü").font(.title)
-            Text("Simülatörde kamera çalışmaz, gerçek cihaz gerekir.")
+            Text("Camera Module").font(.title)
+            Text("Camera does not work on simulator, real device required.")
                 .multilineTextAlignment(.center).padding()
-            Button("Kapat") { dismiss() }
+            Button("Close") { dismiss() }
                 .padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
         }
     }
@@ -260,13 +260,13 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Kullanıcı Bilgileri")) {
-                    TextField("Ad Soyad", text: $name)
-                    TextField("E-posta", text: $email)
+                Section(header: Text("User Information")) {
+                    TextField("Full Name", text: $name)
+                    TextField("Email", text: $email)
                 }
             }
-            .navigationTitle("Profili Düzenle")
-            .navigationBarItems(trailing: Button("Bitti") { dismiss() })
+            .navigationTitle("Edit Profile")
+            .navigationBarItems(trailing: Button("Done") { dismiss() })
         }
     }
 }
@@ -317,12 +317,12 @@ struct ResetPasswordView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Şifre Değiştir")) {
-                SecureField("Eski Şifre", text: $oldPass)
-                SecureField("Yeni Şifre", text: $newPass)
-                SecureField("Yeni Şifre (Tekrar)", text: $confirmPass)
+            Section(header: Text("Change Password")) {
+                SecureField("Old Password", text: $oldPass)
+                SecureField("New Password", text: $newPass)
+                SecureField("Confirm New Password", text: $confirmPass)
             }
-            Button("Güncelle") { /* Güncelleme mantığı */ }
+            Button("Update") { /* Güncelleme mantığı */ }
         }
         .navigationTitle("Reset Password")
     }
@@ -334,10 +334,10 @@ struct ForgotPasswordView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("E-posta adresinize sıfırlama linki gönderilecek")) {
-                TextField("E-posta", text: $email)
+            Section(header: Text("A reset link will be sent to your email")) {
+                TextField("Email", text: $email)
             }
-            Button("Gönder") { /* Mail atma mantığı */ }
+            Button("Send") { /* Mail atma mantığı */ }
         }
         .navigationTitle("Forgot Password")
     }
@@ -352,10 +352,10 @@ struct ProfileInfoView: View {
     
     var body: some View {
         List {
-            LabeledContent("Ad Soyad", value: name)
-            LabeledContent("E-posta", value: email)
-            LabeledContent("Üyelik Tipi", value: "Premium")
-            LabeledContent("Katılım", value: "Nisan 2026")
+            LabeledContent("Full Name", value: name)
+            LabeledContent("Email", value: email)
+            LabeledContent("Membership Type", value: "Premium")
+            LabeledContent("Joined", value: "April 2026")
         }
         .navigationTitle("Profile Info")
     }
@@ -370,8 +370,8 @@ struct PhoneVerificationView:  View {
     var body: some View {
         Form {
             if !isCodeSent {
-                Section(header: Text("Telefon Numaranı Doğrula")) {
-                    TextField("Telefon Numarası (Örn: 05xx)", text: $phoneNumber)
+                Section(header: Text("Verify Your Phone Number")) {
+                    TextField("Phone Number (e.g., 05xx)", text: $phoneNumber)
                         .keyboardType(.phonePad)
                         .onAppear {
                                 // Sayfa açıldığında otomatik odaklanması için (Opsiyonel)
@@ -379,24 +379,24 @@ struct PhoneVerificationView:  View {
                     
                     
                     Button(action: { isCodeSent = true }) {
-                        Text("Onay Kodu Gönder")
+                        Text("Send Verification Code")
                             .fontWeight(.semibold)
                     }
                 }
             } else {
-                Section(header: Text("SMS Kodunu Gir"), footer: Text("\(phoneNumber) numarasına gönderilen 6 haneli kodu giriniz.")) {
-                    TextField("Onay Kodu", text: $verificationCode)
+                Section(header: Text("Enter SMS Code"), footer: Text("Enter the 6-digit code sent to \(phoneNumber).")) {
+                    TextField("Verification Code", text: $verificationCode)
                         .keyboardType(.numberPad)
                     
                     Button(action: {
                         // Burada doğrulama mantığı çalışır
                         dismiss()
                     }) {
-                        Text("Doğrula ve Bitir")
+                        Text("Verify and Finish")
                             .fontWeight(.semibold)
                     }
                     
-                    Button("Kodu Tekrar Gönder") {
+                    Button("Resend Code") {
                         // Yeniden gönderme fonksiyonu
                     }
                     .font(.caption)
@@ -415,9 +415,9 @@ struct LocationSettingsView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Konum Bilgileri")) {
-                TextField("Şehir/Semt Giriniz", text: $location)
-                Toggle("Konumum Diğer Kullanıcılara Görünsün", isOn: $isVisible)
+            Section(header: Text("Location Details")) {
+                TextField("Enter City/District", text: $location)
+                Toggle("Show My Location to Other Users", isOn: $isVisible)
             }
         }
         .navigationTitle("Location")
@@ -429,8 +429,8 @@ struct VolunteeringSettingsView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Gönüllülük Durumu")) {
-                Toggle("Gönüllü Olmak İstiyorum", isOn: $isActive)
+            Section(header: Text("Volunteering Status")) {
+                Toggle("I want to be a volunteer", isOn: $isActive)
                     .tint(.green)
             }
         }
@@ -442,16 +442,16 @@ struct VolunteeringSettingsView: View {
 struct PetPreferencesView: View {
     @Binding var type: String
     @Binding var age: Int
-    let petTypes = ["Kedi", "Köpek", "Kuş", "Hepsi"]
+    let petTypes = ["Cat", "Dog", "Bird", "All"]
     
     var body: some View {
         Form {
-            Section(header: Text("Filtre Tercihleriniz")) {
-                Picker("Tercih Edilen Tür", selection: $type) {
+            Section(header: Text("Your Filter Preferences")) {
+                Picker("Preferred Type", selection: $type) {
                     ForEach(petTypes, id: \.self) { Text($0) }
                 }
                 
-                Stepper("Yaş Tercihi: \(age)", value: $age, in: 1...20)
+                Stepper("Age Preferencei: \(age)", value: $age, in: 1...20)
             }
         }
         .navigationTitle("Pet Preferences")
@@ -466,7 +466,7 @@ struct UPISettingsView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Mevcut Hesap")) {
+            Section(header: Text("Current Account")) {
                 HStack {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundColor(.green)
@@ -475,14 +475,14 @@ struct UPISettingsView: View {
                 }
             }
             
-            Section(header: Text("Ayarlar"), footer: Text("Hızlı ödeme özelliği ile küçük bağışlar tek tıkla onaylanır.")) {
-                Toggle("Hızlı Bağış", isOn: $isFastPayEnabled)
+            Section(header: Text("Settings"), footer: Text("With the fast payment feature, small donations are approved with one click.")) {
+                Toggle("Fast Donation", isOn: $isFastPayEnabled)
                     .tint(.green)
             }
             
             Section {
                 Button(action: { showAddSheet = true }) {
-                    Label("Yeni UPI Hesabı Ekle", systemImage: "plus.circle")
+                    Label("Add New UPI Account", systemImage: "plus.circle")
                         .foregroundColor(.green)
                 }
             }
@@ -492,10 +492,10 @@ struct UPISettingsView: View {
         .sheet(isPresented: $showAddSheet) {
             NavigationStack {
                 Form {
-                    TextField("Yeni UPI ID (örn: ad@banka)", text: $newUpiID)
+                    TextField("New UPI ID (e.g., name@bank)", text: $newUpiID)
                         .autocapitalization(.none)
                     
-                    Button("Kaydet") {
+                    Button("Save") {
                         if !newUpiID.isEmpty {
                             upiID = newUpiID
                             newUpiID = ""
@@ -503,9 +503,9 @@ struct UPISettingsView: View {
                         }
                     }
                 }
-                .navigationTitle("Hesap Ekle")
+                .navigationTitle("Add Account")
                 .toolbar {
-                    Button("Kapat") { showAddSheet = false }
+                    Button("Close") { showAddSheet = false }
                 }
             }
             .presentationDetents([.medium])
@@ -537,9 +537,9 @@ struct DonationHistoryView: View {
     var body: some View {
         List {
             if viewModel.isLoading {
-                ProgressView("Bağışlar yükleniyor...") // Backend beklerken dönen simge
+                ProgressView("Donations are loading...") // Backend beklerken dönen simge
             } else if viewModel.donations.isEmpty {
-                Text("Kayıt bulunamadı.")
+                Text("No records found.")
             } else {
                 ForEach(viewModel.donations) { item in
                     // ... Satır tasarımı aynı kalıyor ...
@@ -565,7 +565,7 @@ struct SupportView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("İletişim Bilgilerimiz"), footer: Text("Size en kısa sürede dönüş yapmaya çalışacağız.")) {
+            Section(header: Text("Contact Information"), footer: Text("We will try to get back to you as soon as possible.")) {
                 HStack {
                     Image(systemName: "envelope.circle.fill")
                         .foregroundColor(.green)
@@ -599,7 +599,7 @@ struct SupportView: View {
                         UIApplication.shared.open(url)
                     }
                 }) {
-                    Label("Mail Uygulamasını Aç", systemImage: "paperplane.fill")
+                    Label("Open Mail App", systemImage: "paperplane.fill")
                         .foregroundColor(.green)
                 }
             }
