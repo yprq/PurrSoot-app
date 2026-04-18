@@ -105,6 +105,13 @@ struct ProfileView: View {
                                         MenuItemRow(item: MenuItem(icon: "clock.arrow.circlepath", text: "Donation History"))
                                     }.buttonStyle(.plain)
                                 }
+                                
+                                // 4. Kutu: Support
+                                ProfileMenuSection(title: "Support") {
+                                    NavigationLink(destination: SupportView()) {
+                                        MenuItemRow(item: MenuItem(icon: "envelope.fill", text: "Contact Us"))
+                                    }.buttonStyle(.plain)
+                                }
                             }
                             .padding(.top, 10)
                         }
@@ -451,40 +458,153 @@ struct PetPreferencesView: View {
     }
 }
 
-// --- UPI AYARLARI ---
 struct UPISettingsView: View {
-    @State private var upiID = "james@upi"
+    @State private var upiID: String = "jamesparlor@upi"
+    @State private var isFastPayEnabled: Bool = true
+    @State private var showAddSheet: Bool = false
+    @State private var newUpiID: String = ""
+    
     var body: some View {
         Form {
-            Section(header: Text("UPI Bilgileri")) {
-                LabeledContent("Aktif ID", value: upiID)
-                Button("Yeni Hesap Bağla") { }
+            Section(header: Text("Mevcut Hesap")) {
+                HStack {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                    Text(upiID)
+                        .font(.body)
+                }
+            }
+            
+            Section(header: Text("Ayarlar"), footer: Text("Hızlı ödeme özelliği ile küçük bağışlar tek tıkla onaylanır.")) {
+                Toggle("Hızlı Bağış", isOn: $isFastPayEnabled)
+                    .tint(.green)
+            }
+            
+            Section {
+                Button(action: { showAddSheet = true }) {
+                    Label("Yeni UPI Hesabı Ekle", systemImage: "plus.circle")
+                        .foregroundColor(.green)
+                }
             }
         }
         .navigationTitle("UPI Settings")
+        // Alttan açılan form
+        .sheet(isPresented: $showAddSheet) {
+            NavigationStack {
+                Form {
+                    TextField("Yeni UPI ID (örn: ad@banka)", text: $newUpiID)
+                        .autocapitalization(.none)
+                    
+                    Button("Kaydet") {
+                        if !newUpiID.isEmpty {
+                            upiID = newUpiID
+                            newUpiID = ""
+                            showAddSheet = false
+                        }
+                    }
+                }
+                .navigationTitle("Hesap Ekle")
+                .toolbar {
+                    Button("Kapat") { showAddSheet = false }
+                }
+            }
+            .presentationDetents([.medium])
+        }
     }
 }
 
-// --- BAĞIŞ GEÇMİŞİ ---
+class DonationViewModel: ObservableObject {
+    @Published var donations: [DonationRecord] = [] // Backend'den gelince otomatik güncellenir
+    @Published var isLoading = false // Veri yükleniyor animasyonu için
+    
+    // Backend'den verileri çeken fonksiyon (Şu an taslak)
+    func fetchDonations() {
+        self.isLoading = true
+        // Burada URLSession ile backend API'ne istek atacağız
+        // Örn: https://api.purrsoot.com/donations
+        
+        // Şimdilik test için boş gelsin veya mevcutları yükle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.isLoading = false
+            // Buraya gelen JSON verisi atanacak
+        }
+    }
+}
+
 struct DonationHistoryView: View {
-    @State private var donations = [
-        DonationRecord(shelterName: "Pati Koruma", amount: "₺250", date: "12.04.2026"),
-        DonationRecord(shelterName: "Mama Kumbarası", amount: "₺100", date: "05.04.2026")
-    ]
+    @StateObject var viewModel = DonationViewModel() // ViewModel bağlandı
+    
     var body: some View {
         List {
-            ForEach(donations) { item in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(item.shelterName).fontWeight(.semibold)
-                        Text(item.date).font(.caption).foregroundColor(.gray)
+            if viewModel.isLoading {
+                ProgressView("Bağışlar yükleniyor...") // Backend beklerken dönen simge
+            } else if viewModel.donations.isEmpty {
+                Text("Kayıt bulunamadı.")
+            } else {
+                ForEach(viewModel.donations) { item in
+                    // ... Satır tasarımı aynı kalıyor ...
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(item.shelterName).fontWeight(.semibold)
+                            Text(item.date).font(.caption).foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Text(item.amount).foregroundColor(.green).fontWeight(.bold)
                     }
-                    Spacer()
-                    Text(item.amount).foregroundColor(.green).fontWeight(.bold)
                 }
             }
         }
         .navigationTitle("Donation History")
+        .onAppear {
+            viewModel.fetchDonations() // Sayfa açılınca backend'i çağır
+        }
+    }
+}
+struct SupportView: View {
+    let emailAddress = "support@purrsoot.com"
+    
+    var body: some View {
+        Form {
+            Section(header: Text("İletişim Bilgilerimiz"), footer: Text("Size en kısa sürede dönüş yapmaya çalışacağız.")) {
+                HStack {
+                    Image(systemName: "envelope.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title2)
+                    
+                    VStack(alignment: .leading) {
+                        Text("E-posta")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(emailAddress)
+                            .fontWeight(.medium)
+                    }
+                    
+                    Spacer()
+                    
+                    // Kopyalama butonu (Mühendis dokunuşu)
+                    Button(action: {
+                        UIPasteboard.general.string = emailAddress
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.vertical, 5)
+            }
+            
+            Section {
+                Button(action: {
+                    // Cihazdaki mail uygulamasını açmaya çalışır
+                    if let url = URL(string: "mailto:\(emailAddress)") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Label("Mail Uygulamasını Aç", systemImage: "paperplane.fill")
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .navigationTitle("Support")
     }
 }
 
