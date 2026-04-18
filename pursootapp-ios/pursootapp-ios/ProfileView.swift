@@ -10,6 +10,13 @@ struct MenuItem: Identifiable {
     var status: Bool = true
 }
 
+struct DonationRecord: Identifiable {
+    let id = UUID()
+    let shelterName: String
+    let amount: String
+    let date: String
+}
+
 // --- ANA EKRAN ---
 struct ProfileView: View {
     @State private var showOptions = false             // Menüyü açan anahtar
@@ -35,113 +42,111 @@ struct ProfileView: View {
     @State private var petAge = 1
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGray6).ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Header
-                        HStack {
-                            Spacer()
-                            Text("Profile").font(.headline).fontWeight(.bold)
-                            Spacer()
-                            Button(action: { showSettings = true }) {
-                                Image(systemName: "slider.horizontal.3")
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // 1. KISIM: Profil Kartı
-                        ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
-                        
-                        // 2. KISIM: İstatistikler
-                        StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
-                        
-                        // 3. KISIM: Menü Grupları
-                        VStack(spacing: 25) {
-                            // ProfileView'ın body'si içinde, StatisticsRow'un hemen altına:
-                            // ProfileView İÇİNDEKİ ScrollView -> VStack İÇİNE:
-
-                            // 1. Kutu: Account Security (Eski hatalı çağırma yerine bunu koy)
-                            ProfileMenuSection(title: "Account security") {
-                                NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
-                                    MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
-                                }.buttonStyle(.plain)
+            NavigationStack {
+                ZStack {
+                    // Arka Plan
+                    Color(.systemGray6).ignoresSafeArea()
+                    
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Header
+                            headerView
+                            
+                            // 1. KISIM: Profil Kartı
+                            ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
+                            
+                            // 2. KISIM: İstatistikler
+                            StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
+                            
+                            // 3. KISIM: Menü Grupları
+                            VStack(spacing: 25) {
                                 
-                                NavigationLink(destination: ForgotPasswordView()) {
-                                    MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
-                                }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: ResetPasswordView()) {
+                                // 1. Kutu: Account Security
+                                ProfileMenuSection(title: "Account security") {
+                                    NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
+                                        MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: ForgotPasswordView()) {
+                                        MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: ResetPasswordView()) {
                                         MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: PhoneVerificationView()) {
-                                    MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
-                                }.buttonStyle(.plain)
-                            }
+                                    
+                                    NavigationLink(destination: PhoneVerificationView()) {
+                                        MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
+                                    }.buttonStyle(.plain)
+                                }
 
-                            // 2. Kutu: User Preferences (Burası da hata veriyordu, bunu koy)
-                            ProfileMenuSection(title: "User Preferences") {
-                                NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
+                                // 2. Kutu: User Preferences
+                                ProfileMenuSection(title: "User Preferences") {
+                                    NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
                                         MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
+                                    
+                                    NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
                                         MenuItemRow(item: MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
+                                    
+                                    NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
                                         MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
                                     }.buttonStyle(.plain)
+                                }
+                                
+                                // 3. Kutu: Donation
+                                ProfileMenuSection(title: "Donation") {
+                                    NavigationLink(destination: UPISettingsView()) {
+                                        MenuItemRow(item: MenuItem(icon: "creditcard", text: "UPI Settings"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: DonationHistoryView()) {
+                                        MenuItemRow(item: MenuItem(icon: "clock.arrow.circlepath", text: "Donation History"))
+                                    }.buttonStyle(.plain)
+                                }
                             }
-                            
-                            // 57. satırdaki hatalı yeri bul ve parantez içini böyle doldur:
-                            
+                            .padding(.top, 10)
                         }
-                        .padding(.top, 10)
+                        .padding()
+                    } // ScrollView sonu
+                } // ZStack sonu
+                .sheet(isPresented: $showSettings) {
+                    EditProfileView(name: $userName, email: $userEmail)
+                }
+                .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
+                    Button("Kamera") { showCamera = true }
+                    Button("Galeri") { showGallery = true }
+                    Button("İptal", role: .cancel) { }
+                }
+            } // NavigationStack sonu
+            .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPlaceholderView(image: $profileImage)
+            }
+            .onChange(of: selectedItem) { newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        profileImage = Image(uiImage: uiImage)
                     }
-                    .padding()
-                    .sheet(isPresented: $showSettings) {
-                        EditProfileView(name: $userName, email: $userEmail)
-                    }
-                }
-            }}
-        // SEÇENEK MENÜSÜ (Confirmation Dialog)
-        .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
-            Button("Kamera ile Çek") {
-                showCamera = true
-            }
-            Button("Galeriden Seç") {
-                showGallery = true
-            }
-            if profileImage != nil {
-                Button("Fotoğrafı Kaldır", role: .destructive) {
-                    profileImage = nil
-                    selectedItem = nil
-                }
-            }
-            Button("İptal", role: .cancel) { }
-        }
-        // GALERİ TETİKLEYİCİ
-        .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
-        // KAMERA TETİKLEYİCİ (Not: SwiftUI'da hazır kamera yoktur, aşağıda basit bir çözüm ekledim)
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPlaceholderView(image: $profileImage)
-        }
-        // Galeri seçimi sonrası resmi yükleme
-        .onChange(of: selectedItem) { newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    profileImage = Image(uiImage: uiImage)
                 }
             }
         }
-    }
-}
+
+        // Küçük bir yardımcı: Header
+        var headerView: some View {
+            HStack {
+                Spacer()
+                Text("Profile").font(.headline).fontWeight(.bold)
+                Spacer()
+                Button(action: { showSettings = true }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding(.horizontal)
+        }}
 
 // --- BİLEŞENLER ---
 
@@ -293,6 +298,7 @@ struct MenuItemRow: View {
                 Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
             }
         }
+        
     }
 }
 
@@ -442,6 +448,43 @@ struct PetPreferencesView: View {
             }
         }
         .navigationTitle("Pet Preferences")
+    }
+}
+
+// --- UPI AYARLARI ---
+struct UPISettingsView: View {
+    @State private var upiID = "james@upi"
+    var body: some View {
+        Form {
+            Section(header: Text("UPI Bilgileri")) {
+                LabeledContent("Aktif ID", value: upiID)
+                Button("Yeni Hesap Bağla") { }
+            }
+        }
+        .navigationTitle("UPI Settings")
+    }
+}
+
+// --- BAĞIŞ GEÇMİŞİ ---
+struct DonationHistoryView: View {
+    @State private var donations = [
+        DonationRecord(shelterName: "Pati Koruma", amount: "₺250", date: "12.04.2026"),
+        DonationRecord(shelterName: "Mama Kumbarası", amount: "₺100", date: "05.04.2026")
+    ]
+    var body: some View {
+        List {
+            ForEach(donations) { item in
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text(item.shelterName).fontWeight(.semibold)
+                        Text(item.date).font(.caption).foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Text(item.amount).foregroundColor(.green).fontWeight(.bold)
+                }
+            }
+        }
+        .navigationTitle("Donation History")
     }
 }
 
