@@ -12,6 +12,7 @@ struct UserPost: Identifiable {
     var isLiked: Bool = false
     var isSaved: Bool = false
     var likeCount: Int = 0
+    var comments: [String] = [] // Yorumları tutacak yeni alan
 }
 
 struct Comment: Identifiable {
