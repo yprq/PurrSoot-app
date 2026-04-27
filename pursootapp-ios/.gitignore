@@ -1,3 +1,15 @@
+# Python (FastAPI & Models)
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+build/
+dist/
+
 # Node.js
 node_modules/
 npm-debug.log*
@@ -5,13 +17,12 @@ package-lock.json
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 
-# Python
-__pycache__/
-*.pyc
-.env
-
-# Xcode
+# Xcode / iOS
 build/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
+DerivedData/
+.swiftpm/

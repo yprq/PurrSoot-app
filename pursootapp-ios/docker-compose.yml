@@ -14,14 +14,13 @@ services:
       - ./pursoot-backend/init-scripts:/docker-entrypoint-initdb.d/
 
   api:
-    build: ./pursoot-backend/api-node
+    build: ./pursoot-backend/api-fastapi
     ports:
-      - "3000:3000"
+      - "8000:8000"
     depends_on:
       - db
     environment:
       DB_HOST: db
-      PYTHON_MODEL_URL: http://models:5000
 
   models:
     build: ./pursoot-backend/models-python
