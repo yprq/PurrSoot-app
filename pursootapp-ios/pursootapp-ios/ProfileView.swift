@@ -10,6 +10,13 @@ struct MenuItem: Identifiable {
     var status: Bool = true
 }
 
+struct DonationRecord: Identifiable {
+    let id = UUID()
+    let shelterName: String
+    let amount: String
+    let date: String
+}
+
 // --- ANA EKRAN ---
 struct ProfileView: View {
     @State private var showOptions = false             // Menüyü açan anahtar
@@ -31,117 +38,122 @@ struct ProfileView: View {
     @State private var isVolunteeringActive = false
 
     // Pet Preferences (Filtreler)
-    @State private var petType = "Hepsi"
+    @State private var petType = "All"
     @State private var petAge = 1
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGray6).ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Header
-                        HStack {
-                            Spacer()
-                            Text("Profile").font(.headline).fontWeight(.bold)
-                            Spacer()
-                            Button(action: { showSettings = true }) {
-                                Image(systemName: "slider.horizontal.3")
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // 1. KISIM: Profil Kartı
-                        ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
-                        
-                        // 2. KISIM: İstatistikler
-                        StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
-                        
-                        // 3. KISIM: Menü Grupları
-                        VStack(spacing: 25) {
-                            // ProfileView'ın body'si içinde, StatisticsRow'un hemen altına:
-                            // ProfileView İÇİNDEKİ ScrollView -> VStack İÇİNE:
-
-                            // 1. Kutu: Account Security (Eski hatalı çağırma yerine bunu koy)
-                            ProfileMenuSection(title: "Account security") {
-                                NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
-                                    MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
-                                }.buttonStyle(.plain)
+            NavigationStack {
+                ZStack {
+                    // Arka Plan
+                    Color(.systemGray6).ignoresSafeArea()
+                    
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Header
+                            headerView
+                            
+                            // 1. KISIM: Profil Kartı
+                            ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
+                            
+                            // 2. KISIM: İstatistikler
+                            StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
+                            
+                            // 3. KISIM: Menü Grupları
+                            VStack(spacing: 25) {
                                 
-                                NavigationLink(destination: ForgotPasswordView()) {
-                                    MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
-                                }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: ResetPasswordView()) {
+                                // 1. Kutu: Account Security
+                                ProfileMenuSection(title: "Account security") {
+                                    NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
+                                        MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: ForgotPasswordView()) {
+                                        MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: ResetPasswordView()) {
                                         MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: PhoneVerificationView()) {
-                                    MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
-                                }.buttonStyle(.plain)
-                            }
+                                    
+                                    NavigationLink(destination: PhoneVerificationView()) {
+                                        MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
+                                    }.buttonStyle(.plain)
+                                }
 
-                            // 2. Kutu: User Preferences (Burası da hata veriyordu, bunu koy)
-                            ProfileMenuSection(title: "User Preferences") {
-                                NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
+                                // 2. Kutu: User Preferences
+                                ProfileMenuSection(title: "User Preferences") {
+                                    NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
                                         MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
+                                    
+                                    NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
                                         MenuItemRow(item: MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"))
                                     }.buttonStyle(.plain)
-                                
-                                NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
+                                    
+                                    NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
                                         MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
                                     }.buttonStyle(.plain)
+                                }
+                                
+                                // 3. Kutu: Donation
+                                ProfileMenuSection(title: "Donation") {
+                                    NavigationLink(destination: UPISettingsView()) {
+                                        MenuItemRow(item: MenuItem(icon: "creditcard", text: "UPI Settings"))
+                                    }.buttonStyle(.plain)
+                                    
+                                    NavigationLink(destination: DonationHistoryView()) {
+                                        MenuItemRow(item: MenuItem(icon: "clock.arrow.circlepath", text: "Donation History"))
+                                    }.buttonStyle(.plain)
+                                }
+                                
+                                // 4. Kutu: Support
+                                ProfileMenuSection(title: "Support") {
+                                    NavigationLink(destination: SupportView()) {
+                                        MenuItemRow(item: MenuItem(icon: "envelope.fill", text: "Contact Us"))
+                                    }.buttonStyle(.plain)
+                                }
                             }
-                            
-                            // 57. satırdaki hatalı yeri bul ve parantez içini böyle doldur:
-                            
+                            .padding(.top, 10)
                         }
-                        .padding(.top, 10)
+                        .padding()
+                    } // ScrollView sonu
+                } // ZStack sonu
+                .sheet(isPresented: $showSettings) {
+                    EditProfileView(name: $userName, email: $userEmail)
+                }
+                .confirmationDialog("Profile Photo", isPresented: $showOptions, titleVisibility: .visible) {
+                    Button("Camera") { showCamera = true }
+                    Button("Gallery") { showGallery = true }
+                    Button("Cancel", role: .cancel) { }
+                }
+            } // NavigationStack sonu
+            .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPlaceholderView(image: $profileImage)
+            }
+            .onChange(of: selectedItem) { newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        profileImage = Image(uiImage: uiImage)
                     }
-                    .padding()
-                    .sheet(isPresented: $showSettings) {
-                        EditProfileView(name: $userName, email: $userEmail)
-                    }
-                }
-            }}
-        // SEÇENEK MENÜSÜ (Confirmation Dialog)
-        .confirmationDialog("Profil Fotoğrafı", isPresented: $showOptions, titleVisibility: .visible) {
-            Button("Kamera ile Çek") {
-                showCamera = true
-            }
-            Button("Galeriden Seç") {
-                showGallery = true
-            }
-            if profileImage != nil {
-                Button("Fotoğrafı Kaldır", role: .destructive) {
-                    profileImage = nil
-                    selectedItem = nil
-                }
-            }
-            Button("İptal", role: .cancel) { }
-        }
-        // GALERİ TETİKLEYİCİ
-        .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
-        // KAMERA TETİKLEYİCİ (Not: SwiftUI'da hazır kamera yoktur, aşağıda basit bir çözüm ekledim)
-        .fullScreenCover(isPresented: $showCamera) {
-            CameraPlaceholderView(image: $profileImage)
-        }
-        // Galeri seçimi sonrası resmi yükleme
-        .onChange(of: selectedItem) { newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
-                   let uiImage = UIImage(data: data) {
-                    profileImage = Image(uiImage: uiImage)
                 }
             }
         }
-    }
-}
+
+        // Küçük bir yardımcı: Header
+        var headerView: some View {
+            HStack {
+                Spacer()
+                Text("Profile").font(.headline).fontWeight(.bold)
+                Spacer()
+                Button(action: { showSettings = true }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding(.horizontal)
+        }}
 
 // --- BİLEŞENLER ---
 
@@ -186,10 +198,10 @@ struct CameraPlaceholderView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("Kamera Modülü").font(.title)
-            Text("Simülatörde kamera çalışmaz, gerçek cihaz gerekir.")
+            Text("Camera Module").font(.title)
+            Text("Camera does not work on simulator, real device required.")
                 .multilineTextAlignment(.center).padding()
-            Button("Kapat") { dismiss() }
+            Button("Close") { dismiss() }
                 .padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
         }
     }
@@ -248,13 +260,13 @@ struct EditProfileView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Kullanıcı Bilgileri")) {
-                    TextField("Ad Soyad", text: $name)
-                    TextField("E-posta", text: $email)
+                Section(header: Text("User Information")) {
+                    TextField("Full Name", text: $name)
+                    TextField("Email", text: $email)
                 }
             }
-            .navigationTitle("Profili Düzenle")
-            .navigationBarItems(trailing: Button("Bitti") { dismiss() })
+            .navigationTitle("Edit Profile")
+            .navigationBarItems(trailing: Button("Done") { dismiss() })
         }
     }
 }
@@ -293,6 +305,7 @@ struct MenuItemRow: View {
                 Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
             }
         }
+        
     }
 }
 
@@ -304,12 +317,12 @@ struct ResetPasswordView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Şifre Değiştir")) {
-                SecureField("Eski Şifre", text: $oldPass)
-                SecureField("Yeni Şifre", text: $newPass)
-                SecureField("Yeni Şifre (Tekrar)", text: $confirmPass)
+            Section(header: Text("Change Password")) {
+                SecureField("Old Password", text: $oldPass)
+                SecureField("New Password", text: $newPass)
+                SecureField("Confirm New Password", text: $confirmPass)
             }
-            Button("Güncelle") { /* Güncelleme mantığı */ }
+            Button("Update") { /* Güncelleme mantığı */ }
         }
         .navigationTitle("Reset Password")
     }
@@ -321,10 +334,10 @@ struct ForgotPasswordView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("E-posta adresinize sıfırlama linki gönderilecek")) {
-                TextField("E-posta", text: $email)
+            Section(header: Text("A reset link will be sent to your email")) {
+                TextField("Email", text: $email)
             }
-            Button("Gönder") { /* Mail atma mantığı */ }
+            Button("Send") { /* Mail atma mantığı */ }
         }
         .navigationTitle("Forgot Password")
     }
@@ -339,10 +352,10 @@ struct ProfileInfoView: View {
     
     var body: some View {
         List {
-            LabeledContent("Ad Soyad", value: name)
-            LabeledContent("E-posta", value: email)
-            LabeledContent("Üyelik Tipi", value: "Premium")
-            LabeledContent("Katılım", value: "Nisan 2026")
+            LabeledContent("Full Name", value: name)
+            LabeledContent("Email", value: email)
+            LabeledContent("Membership Type", value: "Premium")
+            LabeledContent("Joined", value: "April 2026")
         }
         .navigationTitle("Profile Info")
     }
@@ -357,8 +370,8 @@ struct PhoneVerificationView:  View {
     var body: some View {
         Form {
             if !isCodeSent {
-                Section(header: Text("Telefon Numaranı Doğrula")) {
-                    TextField("Telefon Numarası (Örn: 05xx)", text: $phoneNumber)
+                Section(header: Text("Verify Your Phone Number")) {
+                    TextField("Phone Number (e.g., 05xx)", text: $phoneNumber)
                         .keyboardType(.phonePad)
                         .onAppear {
                                 // Sayfa açıldığında otomatik odaklanması için (Opsiyonel)
@@ -366,24 +379,24 @@ struct PhoneVerificationView:  View {
                     
                     
                     Button(action: { isCodeSent = true }) {
-                        Text("Onay Kodu Gönder")
+                        Text("Send Verification Code")
                             .fontWeight(.semibold)
                     }
                 }
             } else {
-                Section(header: Text("SMS Kodunu Gir"), footer: Text("\(phoneNumber) numarasına gönderilen 6 haneli kodu giriniz.")) {
-                    TextField("Onay Kodu", text: $verificationCode)
+                Section(header: Text("Enter SMS Code"), footer: Text("Enter the 6-digit code sent to \(phoneNumber).")) {
+                    TextField("Verification Code", text: $verificationCode)
                         .keyboardType(.numberPad)
                     
                     Button(action: {
                         // Burada doğrulama mantığı çalışır
                         dismiss()
                     }) {
-                        Text("Doğrula ve Bitir")
+                        Text("Verify and Finish")
                             .fontWeight(.semibold)
                     }
                     
-                    Button("Kodu Tekrar Gönder") {
+                    Button("Resend Code") {
                         // Yeniden gönderme fonksiyonu
                     }
                     .font(.caption)
@@ -402,9 +415,9 @@ struct LocationSettingsView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Konum Bilgileri")) {
-                TextField("Şehir/Semt Giriniz", text: $location)
-                Toggle("Konumum Diğer Kullanıcılara Görünsün", isOn: $isVisible)
+            Section(header: Text("Location Details")) {
+                TextField("Enter City/District", text: $location)
+                Toggle("Show My Location to Other Users", isOn: $isVisible)
             }
         }
         .navigationTitle("Location")
@@ -416,8 +429,8 @@ struct VolunteeringSettingsView: View {
     
     var body: some View {
         Form {
-            Section(header: Text("Gönüllülük Durumu")) {
-                Toggle("Gönüllü Olmak İstiyorum", isOn: $isActive)
+            Section(header: Text("Volunteering Status")) {
+                Toggle("I want to be a volunteer", isOn: $isActive)
                     .tint(.green)
             }
         }
@@ -429,19 +442,169 @@ struct VolunteeringSettingsView: View {
 struct PetPreferencesView: View {
     @Binding var type: String
     @Binding var age: Int
-    let petTypes = ["Kedi", "Köpek", "Kuş", "Hepsi"]
+    let petTypes = ["Cat", "Dog", "Bird", "All"]
     
     var body: some View {
         Form {
-            Section(header: Text("Filtre Tercihleriniz")) {
-                Picker("Tercih Edilen Tür", selection: $type) {
+            Section(header: Text("Your Filter Preferences")) {
+                Picker("Preferred Type", selection: $type) {
                     ForEach(petTypes, id: \.self) { Text($0) }
                 }
                 
-                Stepper("Yaş Tercihi: \(age)", value: $age, in: 1...20)
+                Stepper("Age Preferencei: \(age)", value: $age, in: 1...20)
             }
         }
         .navigationTitle("Pet Preferences")
+    }
+}
+
+struct UPISettingsView: View {
+    @State private var upiID: String = "jamesparlor@upi"
+    @State private var isFastPayEnabled: Bool = true
+    @State private var showAddSheet: Bool = false
+    @State private var newUpiID: String = ""
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Current Account")) {
+                HStack {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundColor(.green)
+                    Text(upiID)
+                        .font(.body)
+                }
+            }
+            
+            Section(header: Text("Settings"), footer: Text("With the fast payment feature, small donations are approved with one click.")) {
+                Toggle("Fast Donation", isOn: $isFastPayEnabled)
+                    .tint(.green)
+            }
+            
+            Section {
+                Button(action: { showAddSheet = true }) {
+                    Label("Add New UPI Account", systemImage: "plus.circle")
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .navigationTitle("UPI Settings")
+        // Alttan açılan form
+        .sheet(isPresented: $showAddSheet) {
+            NavigationStack {
+                Form {
+                    TextField("New UPI ID (e.g., name@bank)", text: $newUpiID)
+                        .autocapitalization(.none)
+                    
+                    Button("Save") {
+                        if !newUpiID.isEmpty {
+                            upiID = newUpiID
+                            newUpiID = ""
+                            showAddSheet = false
+                        }
+                    }
+                }
+                .navigationTitle("Add Account")
+                .toolbar {
+                    Button("Close") { showAddSheet = false }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+    }
+}
+
+class DonationViewModel: ObservableObject {
+    @Published var donations: [DonationRecord] = [] // Backend'den gelince otomatik güncellenir
+    @Published var isLoading = false // Veri yükleniyor animasyonu için
+    
+    // Backend'den verileri çeken fonksiyon (Şu an taslak)
+    func fetchDonations() {
+        self.isLoading = true
+        // Burada URLSession ile backend API'ne istek atacağız
+        // Örn: https://api.purrsoot.com/donations
+        
+        // Şimdilik test için boş gelsin veya mevcutları yükle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.isLoading = false
+            // Buraya gelen JSON verisi atanacak
+        }
+    }
+}
+
+struct DonationHistoryView: View {
+    @StateObject var viewModel = DonationViewModel() // ViewModel bağlandı
+    
+    var body: some View {
+        List {
+            if viewModel.isLoading {
+                ProgressView("Donations are loading...") // Backend beklerken dönen simge
+            } else if viewModel.donations.isEmpty {
+                Text("No records found.")
+            } else {
+                ForEach(viewModel.donations) { item in
+                    // ... Satır tasarımı aynı kalıyor ...
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(item.shelterName).fontWeight(.semibold)
+                            Text(item.date).font(.caption).foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Text(item.amount).foregroundColor(.green).fontWeight(.bold)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Donation History")
+        .onAppear {
+            viewModel.fetchDonations() // Sayfa açılınca backend'i çağır
+        }
+    }
+}
+struct SupportView: View {
+    let emailAddress = "support@purrsoot.com"
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Contact Information"), footer: Text("We will try to get back to you as soon as possible.")) {
+                HStack {
+                    Image(systemName: "envelope.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title2)
+                    
+                    VStack(alignment: .leading) {
+                        Text("E-posta")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(emailAddress)
+                            .fontWeight(.medium)
+                    }
+                    
+                    Spacer()
+                    
+                    // Kopyalama butonu (Mühendis dokunuşu)
+                    Button(action: {
+                        UIPasteboard.general.string = emailAddress
+                    }) {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.vertical, 5)
+            }
+            
+            Section {
+                Button(action: {
+                    // Cihazdaki mail uygulamasını açmaya çalışır
+                    if let url = URL(string: "mailto:\(emailAddress)") {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    Label("Open Mail App", systemImage: "paperplane.fill")
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .navigationTitle("Support")
     }
 }
 
