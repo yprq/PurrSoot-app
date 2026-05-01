@@ -1,6 +1,6 @@
 import Foundation
 
-// --- MODELLER (Class dışında olmalı) ---
+// --- MODELLER (Class dışında kalabilir, sorun yok) ---
 struct UserProfile: Codable, Equatable {
     let id: Int
     let username: String
@@ -10,11 +10,10 @@ struct UserProfile: Codable, Equatable {
     let following_count: Int
     let post_count: Int
     let adopted_count: Int
-    let donation_total: String  // Backend'den "3k+" gibi geliyorsa String
-    let feeding_count: Int      // Backend'den sayı geliyorsa Int
-    let title: String           // Genelde Alena/James altında "Pet Owner" yazan kısım
-    }
-
+    let donation_total: String
+    let feeding_count: Int
+    let title: String
+}
 
 struct Post: Codable, Identifiable {
     let id: Int
@@ -23,14 +22,13 @@ struct Post: Codable, Identifiable {
     let image_url: String
 }
 
-// --- SERVİS (Class içinde olmalı) ---
+// --- SERVİS ---
 class ProfileService: ObservableObject {
     @Published var user: UserProfile?
-    @Published var posts: [Post] = [] // Hata buradaydı, class'ın içinde olmalı
+    @Published var posts: [Post] = []
 
     func fetchProfile(userId: Int) {
         guard let url = URL(string: "http://127.0.0.1:8000/profile/\(userId)") else { return }
-        
         URLSession.shared.dataTask(with: url) { data, _, _ in
             if let data = data {
                 if let decoded = try? JSONDecoder().decode(UserProfile.self, from: data) {
@@ -43,17 +41,63 @@ class ProfileService: ObservableObject {
     }
 
     func fetchUserPosts(userId: Int) {
-        // Not: Backend'de bu endpoint'in olduğundan emin ol (Örn: /user/1/posts)
         guard let url = URL(string: "http://127.0.0.1:8000/user/\(userId)/posts") else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                print("Network Error: \(error.localizedDescription)")
+                return
+            }
             if let data = data {
-                if let decodedPosts = try? JSONDecoder().decode([Post].self, from: data) {
+                do {
+                    let decodedPosts = try JSONDecoder().decode([Post].self, from: data)
                     DispatchQueue.main.async {
                         self.posts = decodedPosts
                     }
+                } catch {
+                    print("Decoding Error: \(error)")
                 }
             }
         }.resume()
     }
-}
+
+    func uploadPost(userId: Int, description: String, imageUrl: String) {
+        // URL'deki son slash'i kaldırarak backend ile birebir eşliyoruz
+        guard let url = URL(string: "http://127.0.0.1:8000/posts") else { return }
+        
+        // Verileri backend'in (PostCreate) beklediği anahtarlarla (key) gönderiyoruz
+        let body: [String: Any] = [
+            "owner_id": userId,       // Backend'deki owner_id
+            "description": description, // Backend'deki description
+            "image_url": imageUrl,    // Backend'deki image_url
+            "category": "All"         // Backend'deki category
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // JSON verisini oluştururken hata payını sıfıra indiriyoruz
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        } catch {
+            print("JSON oluşturma hatası: \(error)")
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Post yükleme hatası: \(error.localizedDescription)")
+                return
+            }
+            
+            // Backend'den gelen yanıtı loglayalım ki hatayı görebilelim
+            if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                print("Backend Yanıtı: \(responseString)")
+            }
+
+            DispatchQueue.main.async {
+                self.fetchUserPosts(userId: userId)
+            }
+        }.resume()
+    }
+} // Class burada bitti.

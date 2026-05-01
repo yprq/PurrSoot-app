@@ -25,7 +25,7 @@ struct MyProfileView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showCreatePostView = false
     
-    @StateObject var profileService = ProfileService()
+    @StateObject var profileService: ProfileService = ProfileService()
     
     // DÜZENLEME İÇİN GEREKLİ EKSİK DEĞİŞKENLER:
     @State private var showEditView = false
@@ -58,17 +58,15 @@ struct MyProfileView: View {
                                     .clipShape(Circle())
                                 
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("James Parlor")
+                                    Text(profileService.user?.username ?? "Yükleniyor...")
                                         .font(.system(size: 20, weight: .bold))
                                     
                                     HStack(spacing: 15) {
-                                        // Optional chaining kullanarak user varsa veriyi basıyoruz
                                         StatView(value: profileService.user?.follower_count ?? 0, label: "Followers")
                                         StatView(value: profileService.user?.following_count ?? 0, label: "Following")
                                         StatView(value: profileService.user?.post_count ?? 0, label: "Posts")
                                         StatView(value: profileService.user?.adopted_count ?? 0, label: "Adopted")
-                                    }
-                                }
+                                    }                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -76,32 +74,26 @@ struct MyProfileView: View {
                         .padding(.top, 10)
 
                         // 2. POSTLAR
-                        // 2. POSTLAR
+                        // MyProfileView içinde bu bloğu bul ve değiştir:
                         if profileService.posts.isEmpty {
                             VStack(spacing: 15) {
                                 ProgressView()
                                 Text("Gönderiler yükleniyor...")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
                             }
                             .padding(.top, 50)
                         } else {
+                            // BURASI ÖNEMLİ: Kendi yerel 'posts' dizine değil, servistekine bakmalı
                             ForEach(profileService.posts) { backendPost in
-                                // Backend'den gelen 'backendPost'u senin 'UserPost' tasarımına giydiriyoruz
                                 ProfilePostCard(
                                     post: .constant(UserPost(
-                                        petImage: backendPost.image_url, // Backend'deki image_url'i kullan
+                                        petImage: backendPost.image_url,
                                         selectedImageData: nil,
-                                        description: backendPost.content, // Backend'deki content'i kullan
-                                        likeCount: 0, // Bunlar şimdilik default, sonra backend'e bağlayacağız
+                                        description: backendPost.content,
+                                        likeCount: 0,
                                         comments: []
                                     )),
-                                    onDelete: {
-                                        // Silme işlemini şimdilik boş bırakıyoruz, sonra backend API'sini yazacağız
-                                    },
-                                    onEdit: {
-                                        // Düzenleme işlemini şimdilik boş bırakıyoruz
-                                    }
+                                    onDelete: { /* şimdilik boş */ },
+                                    onEdit: { /* şimdilik boş */ }
                                 )
                             }
                         }
@@ -122,17 +114,21 @@ struct MyProfileView: View {
                     }
                 }
             }
-            // Yeni Gönderi Sheet'i
-            .sheet(isPresented: $showCreatePostView) {
-                CreatePostView(posts: $posts)
             }
             // Düzenleme Sheet'i
-            .sheet(isPresented: $showEditView) {
-                CreatePostView(posts: $posts, editingPostID: editingPostID)
+            // MyProfileView içindeki .sheet kısmını bul ve değiştir:
+            .sheet(isPresented: $showCreatePostView) {
+                CreatePostView(posts: $posts, profileService: profileService)
+            }
+            
+            // NavigationStack'in kapanış parantezinden hemen önceye ekle:
+            .onAppear {
+                profileService.fetchProfile(userId: 1)
+                profileService.fetchUserPosts(userId: 1)
             }
         }
     }
-}
+
 
 // --- YARDIMCI BİLEŞENLER ---
 
@@ -338,6 +334,7 @@ struct ProfilePostCard: View {
 struct CreatePostView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var posts: [UserPost]
+    @StateObject var profileService = ProfileService()
     var editingPostID: UUID? = nil
     var isEditing: Bool { editingPostID != nil }
     
@@ -381,10 +378,10 @@ struct CreatePostView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { Button("Vazgeç") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(isEditing ? "Güncelle" : "Paylaş") {
                         if isEditing {
+                            // Düzenleme kısmı (şimdilik aynı kalabilir)
                             if let index = posts.firstIndex(where: { $0.id == editingPostID }) {
                                 posts[index] = UserPost(
                                     petImage: posts[index].petImage,
@@ -395,6 +392,16 @@ struct CreatePostView: View {
                                 )
                             }
                         } else {
+                            // --- DEĞİŞTİRDİĞİMİZ KISIM BURASI ---
+                            
+                            // 1. Backend'e (Docker/Python) gönder
+                            profileService.uploadPost(
+                                userId: 1, // James'in ID'si
+                                description: postText,
+                                imageUrl: "dog_sample" // Şimdilik asset içindeki bu resmi kullansın
+                            )
+                            
+                            // 2. Ekranın hemen güncellenmesi için yerel listeye ekle
                             let newPost = UserPost(petImage: nil, selectedImageData: selectedImageData, description: postText)
                             posts.insert(newPost, at: 0)
                         }
@@ -405,6 +412,32 @@ struct CreatePostView: View {
             }
         }
     }
+    
+    
+    
+    
+    
+    // Preview
+    // MyProfile.swift dosyasının en altındaki Preview bloğu
+    struct MyProfileView_Previews: PreviewProvider {
+        static var previews: some View {
+            let mockService = ProfileService()
+            
+            // Mock verileri dolduruyoruz
+            mockService.user = UserProfile(
+                id: 1, username: "James Parlor", email: "james@test.com", profile_image: "James_Profile",
+                follower_count: 72, following_count: 15, post_count: 2, adopted_count: 5,
+                donation_total: "3k+", feeding_count: 72, title: "Pet Owner"
+            )
+            mockService.posts = [
+                Post(id: 1, user_id: 1, content: "Canvas artık çalışıyor! 🐾", image_url: "dog_sample")
+            ]
+            
+            // Buradaki önemli nokta: profileService'i doğrudan içine veriyoruz
+            return MyProfileView(profileService: mockService)
+        }
+    }
+    
 }
 
 func sharePost(text: String) {
@@ -416,11 +449,3 @@ func sharePost(text: String) {
         rootVC.present(activityVC, animated: true, completion: nil)
     }
 }
-
-// Preview
-struct MyProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        MyProfileView()
-    }
-}
-
