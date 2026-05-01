@@ -25,13 +25,12 @@ struct MyProfileView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showCreatePostView = false
     
+    @StateObject var profileService = ProfileService()
+    
     // DÜZENLEME İÇİN GEREKLİ EKSİK DEĞİŞKENLER:
     @State private var showEditView = false
     @State private var editingPostID: UUID? = nil
     
-    @State private var followerCount: Int = 89
-    @State private var followingCount: Int = 97
-    @State private var adoptedCount: Int = 1
     
     @State private var posts = [
         UserPost(petImage: "dog_sample", selectedImageData: nil, description: "I found this sweet dog and am looking for a loving home for them..."),
@@ -63,10 +62,11 @@ struct MyProfileView: View {
                                         .font(.system(size: 20, weight: .bold))
                                     
                                     HStack(spacing: 15) {
-                                        StatView(value: followerCount, label: "Followers")
-                                        StatView(value: followingCount, label: "Following")
-                                        StatView(value: dynamicPostCount, label: "Posts")
-                                        StatView(value: adoptedCount, label: "Adopted")
+                                        // Optional chaining kullanarak user varsa veriyi basıyoruz
+                                        StatView(value: profileService.user?.follower_count ?? 0, label: "Followers")
+                                        StatView(value: profileService.user?.following_count ?? 0, label: "Following")
+                                        StatView(value: profileService.user?.post_count ?? 0, label: "Posts")
+                                        StatView(value: profileService.user?.adopted_count ?? 0, label: "Adopted")
                                     }
                                 }
                             }
@@ -76,14 +76,34 @@ struct MyProfileView: View {
                         .padding(.top, 10)
 
                         // 2. POSTLAR
-                        ForEach(posts.indices, id: \.self) { index in
-                            ProfilePostCard(post: $posts[index], onDelete: {
-                                posts.remove(at: index)
-                            }, onEdit: {
-                                // Düzenlenecek postun bilgilerini set et ve sayfayı aç
-                                editingPostID = posts[index].id
-                                showEditView = true
-                            })
+                        // 2. POSTLAR
+                        if profileService.posts.isEmpty {
+                            VStack(spacing: 15) {
+                                ProgressView()
+                                Text("Gönderiler yükleniyor...")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.top, 50)
+                        } else {
+                            ForEach(profileService.posts) { backendPost in
+                                // Backend'den gelen 'backendPost'u senin 'UserPost' tasarımına giydiriyoruz
+                                ProfilePostCard(
+                                    post: .constant(UserPost(
+                                        petImage: backendPost.image_url, // Backend'deki image_url'i kullan
+                                        selectedImageData: nil,
+                                        description: backendPost.content, // Backend'deki content'i kullan
+                                        likeCount: 0, // Bunlar şimdilik default, sonra backend'e bağlayacağız
+                                        comments: []
+                                    )),
+                                    onDelete: {
+                                        // Silme işlemini şimdilik boş bırakıyoruz, sonra backend API'sini yazacağız
+                                    },
+                                    onEdit: {
+                                        // Düzenleme işlemini şimdilik boş bırakıyoruz
+                                    }
+                                )
+                            }
                         }
                         
                         Spacer(minLength: 100)

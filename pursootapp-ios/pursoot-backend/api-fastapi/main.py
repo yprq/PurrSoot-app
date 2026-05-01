@@ -4,8 +4,12 @@ from auth_utils import hash_password
 import re
 from pydantic import BaseModel, EmailStr, field_validator
 from auth_utils import hash_password, verify_password, create_access_token
+from routers import profile, posts  
 
 app = FastAPI()
+
+app.include_router(profile.router)
+app.include_router(posts.router)
 
 #Sign Up
 class UserCreate(BaseModel):

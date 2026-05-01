@@ -97,3 +97,8 @@ VALUES (2, 'Adoption', 'Bu tatlı kediye yuva arıyoruz.', 'cat_sample', 12);
 
 -- James, Alena'yı takip etsin
 INSERT INTO followers (follower_id, followed_id) VALUES (1, 2);
+
+-- James için örnek postlar
+INSERT INTO posts (user_id, content, image_url) VALUES 
+(1, 'Bugün barınaktaki dostlarımızı ziyaret ettik. Çok sevgiye ihtiyaçları var!', 'post_image_1'),
+(1, 'Yeni sahiplendiğim köpeğimle ilk günümüz!', 'post_image_2');
