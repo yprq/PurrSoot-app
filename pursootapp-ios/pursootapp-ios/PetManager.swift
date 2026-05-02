@@ -3,25 +3,35 @@ import SwiftUI
 class PetManager: ObservableObject {
     @Published var pets: [Pet] = []
     
-    func fetchPets() {
-        guard let url = URL(string: "http://127.0.0.1:8000/pets") else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            if let data = data {
-                // Konsola bak: Başında ve sonunda [ ] var mı?[cite: 3]
-                print("GELEN JSON: \(String(data: data, encoding: .utf8) ?? "")")
-                
-                do {
-                    let decoded = try JSONDecoder().decode([Pet].self, from: data)
-                    DispatchQueue.main.async {
-                        self.pets = decoded
-                    }
-                } catch {
-                    print("DECODE HATASI: \(error)")
-                }
+    // Filtreleme parametrelerini alan güncel fetch fonksiyonu
+        func fetchPets(species: String? = nil, gender: String? = nil, age: String? = nil) {
+            var urlString = "http://127.0.0.1:8000/pets?"
+            
+            // Query parametrelerini ekliyoruz
+            if let species = species, species != "All" { urlString += "species=\(species)&" }
+            if let gender = gender, gender != "All" { urlString += "gender=\(gender)&" }
+            // Yaş filtrelemesi için backend'deki sayısal karşılığı gönderiyoruz
+            if let age = age, age != "All" {
+                let numericAge = age == "<1" ? "0" : age.replacingOccurrences(of: "+", with: "")
+                urlString += "age=\(numericAge)&"
             }
-        }.resume()
-    }
+            
+            guard let url = URL(string: urlString) else { return }
+            
+            URLSession.shared.dataTask(with: url) { data, _, error in
+                if let data = data {
+                    do {
+                        let decoded = try JSONDecoder().decode([Pet].self, from: data)
+                        DispatchQueue.main.async {
+                            self.pets = decoded
+                        }
+                    } catch {
+                        print("Filtreleme Decode Hatası: \(error)")
+                        DispatchQueue.main.async { self.pets = [] }
+                    }
+                }
+            }.resume()
+        }
     
     func addPet(name: String, species: String, breed: String, age: String, gender: String, description: String) {
         guard let url = URL(string: "http://127.0.0.1:8000/pets/add") else { return }

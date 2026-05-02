@@ -79,13 +79,29 @@ def login(user_credentials: UserLogin):
 
 #Pet Data
 @app.get("/pets")
-def get_all_pets():
+def get_all_pets(species: Optional[str] = None, gender: Optional[str] = None, age: Optional[int] = None):
     try:
-        # Swift tarafındaki 'displayAge' ve 'displayBreed' için tüm kolonları çekiyoruz[cite: 1, 3]
-        pets = query_db("SELECT * FROM pets ORDER BY created_at DESC") 
+        query = "SELECT * FROM pets WHERE 1=1"
+        params = []
+        
+        if species and species != "All":
+            query += " AND species = %s"
+            params.append(species)
+            
+        if gender and gender != "All":
+            query += " AND gender = %s"
+            params.append(gender)
+            
+        if age is not None:
+            query += " AND age = %s"
+            params.append(age)
+            
+        query += " ORDER BY created_at DESC"
+        
+        pets = query_db(query, tuple(params))
         return pets if pets else []
     except Exception as e:
-        # Hata durumunda boş liste dönmek Swift'in çökmesini engeller
+        print(f"Backend Filtreleme Hatası: {e}")
         return []
 
 #Pet Details
