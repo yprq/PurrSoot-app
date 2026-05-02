@@ -61,38 +61,28 @@ class ProfileService: ObservableObject {
     }
 
     func uploadPost(userId: Int, description: String, imageUrl: String) {
-        // URL'deki son slash'i kaldırarak backend ile birebir eşliyoruz
+        // URL'deki son slash'i kaldırıp backend rotasıyla tam eşliyoruz
         guard let url = URL(string: "http://127.0.0.1:8000/posts") else { return }
         
-        // Verileri backend'in (PostCreate) beklediği anahtarlarla (key) gönderiyoruz
+        // Backend modelindeki isimlerle (owner_id, description vb.) birebir aynı yapıyoruz
         let body: [String: Any] = [
-            "owner_id": userId,       // Backend'deki owner_id
-            "description": description, // Backend'deki description
-            "image_url": imageUrl,    // Backend'deki image_url
-            "category": "All"         // Backend'deki category
+            "owner_id": userId,
+            "description": description,
+            "image_url": imageUrl,
+            "category": "All"
         ]
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // JSON verisini oluştururken hata payını sıfıra indiriyoruz
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        } catch {
-            print("JSON oluşturma hatası: \(error)")
-            return
-        }
+        // JSON oluştururken hata riskini minimize ediyoruz
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Post yükleme hatası: \(error.localizedDescription)")
-                return
-            }
-            
-            // Backend'den gelen yanıtı loglayalım ki hatayı görebilelim
+            // Hata durumunda backend'in ne dediğini görmek için log ekliyoruz
             if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                print("Backend Yanıtı: \(responseString)")
+                 print("BACKEND NE DİYOR: \(responseString)")
             }
 
             DispatchQueue.main.async {

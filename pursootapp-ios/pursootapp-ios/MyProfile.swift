@@ -32,13 +32,10 @@ struct MyProfileView: View {
     @State private var editingPostID: UUID? = nil
     
     
-    @State private var posts = [
-        UserPost(petImage: "dog_sample", selectedImageData: nil, description: "I found this sweet dog and am looking for a loving home for them..."),
-        UserPost(petImage: "cat_sample", selectedImageData: nil, description: "This beautiful cat is looking for a home...")
-    ]
+    @State private var posts: [UserPost] = []
 
     var dynamicPostCount: Int {
-        posts.count
+        profileService.posts.count
     }
     
     var body: some View {
@@ -334,7 +331,7 @@ struct ProfilePostCard: View {
 struct CreatePostView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var posts: [UserPost]
-    @StateObject var profileService = ProfileService()
+    @ObservedObject var profileService: ProfileService
     var editingPostID: UUID? = nil
     var isEditing: Bool { editingPostID != nil }
     
@@ -413,31 +410,24 @@ struct CreatePostView: View {
         }
     }
     
-    
-    
-    
-    
-    // Preview
-    // MyProfile.swift dosyasının en altındaki Preview bloğu
-    struct MyProfileView_Previews: PreviewProvider {
-        static var previews: some View {
-            let mockService = ProfileService()
-            
-            // Mock verileri dolduruyoruz
-            mockService.user = UserProfile(
-                id: 1, username: "James Parlor", email: "james@test.com", profile_image: "James_Profile",
-                follower_count: 72, following_count: 15, post_count: 2, adopted_count: 5,
-                donation_total: "3k+", feeding_count: 72, title: "Pet Owner"
-            )
-            mockService.posts = [
-                Post(id: 1, user_id: 1, content: "Canvas artık çalışıyor! 🐾", image_url: "dog_sample")
-            ]
-            
-            // Buradaki önemli nokta: profileService'i doğrudan içine veriyoruz
-            return MyProfileView(profileService: mockService)
-        }
+}
+struct MyProfileView_Previews: PreviewProvider {
+    static var previews: some View {
+        let mockService = ProfileService()
+        
+        // Mock verileri dolduruyoruz
+        mockService.user = UserProfile(
+            id: 1, username: "James Parlor", email: "james@test.com", profile_image: "James_Profile",
+            follower_count: 72, following_count: 15, post_count: 2, adopted_count: 5,
+            donation_total: "3k+", feeding_count: 72, title: "Pet Owner"
+        )
+        mockService.posts = [
+            Post(id: 1, user_id: 1, content: "Canvas artık çalışıyor! 🐾", image_url: "dog_sample")
+        ]
+        
+        // Buradaki önemli nokta: profileService'i doğrudan içine veriyoruz
+        return MyProfileView(profileService: mockService)
     }
-    
 }
 
 func sharePost(text: String) {
@@ -449,3 +439,4 @@ func sharePost(text: String) {
         rootVC.present(activityVC, animated: true, completion: nil)
     }
 }
+

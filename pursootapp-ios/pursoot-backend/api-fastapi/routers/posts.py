@@ -21,11 +21,6 @@ def get_user_posts(user_id: int):
     query = "SELECT * FROM posts WHERE owner_id = %s ORDER BY created_at DESC"
     return query_db(query, (user_id,))
 
-# --- POST: Yeni Gönderi Paylaş (CreatePostView) ---
-@router.post("/")
-def create_new_post(user_id: int, description: str, category: str = "All", image_url: str = None):
-    query = "INSERT INTO posts (owner_id, description, category, image_url) VALUES (%s, %s, %s, %s) RETURNING *"
-    return query_db(query, (user_id, description, category, image_url), one=True)
 
 # --- DELETE: Gönderi Sil (MyProfileView) ---
 @router.delete("/{post_id}")
@@ -39,3 +34,27 @@ def toggle_like(post_id: int):
     query = "UPDATE posts SET likes_count = likes_count + 1 WHERE id = %s RETURNING likes_count"
     result = query_db(query, (post_id,), one=True)
     return result
+
+# posts.py içinde bu kısmı güncelle:
+
+class PostCreate(BaseModel):
+    owner_id: int
+    description: str
+    image_url: Optional[str] = None
+    category: str = "All"
+
+@router.post("/")
+def create_new_post(post: PostCreate): # Veriyi 'post' objesi olarak alıyoruz
+    try:
+        query = """
+            INSERT INTO posts (owner_id, description, category, image_url) 
+            VALUES (%s, %s, %s, %s) 
+            RETURNING id, created_at
+        """
+        # post.owner_id şeklinde modelden çekiyoruz
+        params = (post.owner_id, post.description, post.category, post.image_url)
+        new_post = query_db(query, params, one=True)
+        return {"message": "Post başarıyla oluşturuldu", "post": new_post}
+    except Exception as e:
+        print(f"HATA: {e}")
+        raise HTTPException(status_code=500, detail="Veritabanı hatası")
