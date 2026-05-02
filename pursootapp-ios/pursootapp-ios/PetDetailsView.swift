@@ -2,222 +2,163 @@ import SwiftUI
 import MapKit
 
 struct PetDetailsView: View {
-    let pet: Pet
+    let pet: Pet // AdoptView'dan gelen dinamik pet nesnesi
     @State private var isFavorite = false
 
-    @State private var cameraPosition: MapCameraPosition = .region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(
-                latitude: 38.4237,
-                longitude: 27.1428
-            ),
-            span: MKCoordinateSpan(
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01
-            )
+    // Harita pozisyonunu pet'in koordinatlarına göre ayarlıyoruz
+    @State private var cameraPosition: MapCameraPosition
+
+    init(pet: Pet) {
+        self.pet = pet
+        // Eğer koordinat yoksa varsayılan (örneğin İzmir) bir konum göster
+        let center = CLLocationCoordinate2D(
+            latitude: pet.latitude ?? 38.4237,
+            longitude: pet.longitude ?? 27.1428
         )
-    )
+        _cameraPosition = State(initialValue: .region(
+            MKCoordinateRegion(
+                center: center,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            )
+        ))
+    }
 
     private let primaryGreen = Color.customDarkSage
 
     var body: some View {
         ZStack {
-            Color(
-                red: 246/255,
-                green: 246/255,
-                blue: 246/255
-            )
-            .ignoresSafeArea()
+            Color(red: 246/255, green: 246/255, blue: 246/255).ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
+                    
+                    // MARK: - Pet Image Section
                     ZStack(alignment: .topTrailing) {
                         ZStack {
                             Color.customLightSage.opacity(0.35)
-
-                            Image(pet.imageName)
+                            Image(pet.pet_image ?? "dog-pic") // Veritabanındaki resim adı
                                 .resizable()
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .padding(16)
                         }
-                        .frame(maxWidth: .infinity)
                         .frame(height: 340)
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                        Button {
-                            isFavorite.toggle()
-                        } label: {
+                        // Favori Butonu
+                        Button { isFavorite.toggle() } label: {
                             ZStack {
-                                Circle()
-                                    .fill(primaryGreen)
-
+                                Circle().fill(primaryGreen)
                                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                                     .font(.system(size: 22))
                                     .foregroundColor(.white)
                             }
                             .frame(width: 52, height: 52)
                         }
-                        .padding(.top, 12)
-                        .padding(.trailing, 12)
-
-                        Capsule()
-                            .fill(Color.gray.opacity(0.45))
-                            .frame(width: 56, height: 20)
-                            .overlay(
-                                HStack(spacing: 4) {
-                                    ForEach(0..<5, id: \.self) { _ in
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 6, height: 6)
-                                    }
-                                }
-                            )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                            .padding(.bottom, 16)
+                        .padding([.top, .trailing], 12)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 18)
 
+                    // MARK: - Info Section
                     Text(pet.name)
-                        .font(.custom("Poppins-SemiBold", size: 20))
+                        .font(.custom("Poppins-SemiBold", size: 24))
                         .foregroundColor(.black)
                         .padding(.horizontal, 20)
                         .padding(.top, 18)
 
                     HStack(spacing: 14) {
-                        DetailInfoBox(title: "Gender", value: pet.gender)
-                        DetailInfoBox(title: "Age", value: pet.age)
-                        DetailInfoBox(title: "Size", value: pet.size)
+                        DetailInfoBox(title: "Gender", value: pet.gender ?? "Unknown")
+                        DetailInfoBox(title: "Age", value: pet.age ?? "N/A")
+                        DetailInfoBox(title: "Size", value: pet.size ?? "Med")
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
 
+                    // MARK: - Owner Section (seed.sql'deki JOIN verisi)
                     ownerCard
                         .padding(.horizontal, 20)
                         .padding(.top, 22)
 
+                    // MARK: - About Section
                     Text("About Pet")
                         .font(.custom("Poppins-SemiBold", size: 18))
-                        .foregroundColor(.black)
                         .padding(.horizontal, 20)
                         .padding(.top, 22)
 
-                    Text(pet.description)
+                    Text(pet.description ?? "No description provided.")
                         .font(.custom("Poppins-Regular", size: 15))
-                        .foregroundColor(.black)
                         .lineSpacing(4)
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
 
+                    // MARK: - Location Section (Dinamik Harita)
                     Text("Location")
                         .font(.custom("Poppins-SemiBold", size: 18))
-                        .foregroundColor(.black)
                         .padding(.horizontal, 20)
                         .padding(.top, 28)
 
                     ZStack(alignment: .bottomTrailing) {
                         Map(position: $cameraPosition) {
-                            Marker(
-                                pet.name,
-                                coordinate: CLLocationCoordinate2D(
-                                    latitude: 38.4237,
-                                    longitude: 27.1428
-                                )
-                            )
+                            Marker(pet.name, coordinate: CLLocationCoordinate2D(
+                                latitude: pet.latitude ?? 38.4237,
+                                longitude: pet.longitude ?? 27.1428
+                            ))
                         }
                         .frame(height: 165)
-                        .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                        ZStack {
-                            Circle()
-                                .fill(Color.white)
-
-                            Image(systemName: "camera")
-                                .font(.system(size: 22))
-                                .foregroundColor(primaryGreen)
-                        }
-                        .frame(width: 54, height: 54)
-                        .padding(.trailing, 18)
-                        .padding(.bottom, 18)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
-                    .padding(.bottom, 28)
+                    .padding(.bottom, 40)
                 }
             }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            header
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-                .background(
-                    Color(
-                        red: 246/255,
-                        green: 246/255,
-                        blue: 246/255
-                    )
-                )
-        }
-        .toolbar(.hidden, for: .navigationBar)
+        .safeAreaInset(edge: .top) { headerView }
         .navigationBarBackButtonHidden(true)
     }
 
-    private var header: some View {
+    // MARK: - Components
+    private var headerView: some View {
         HStack {
             BackButtonView()
-
             Spacer()
-
-            Text("Pet Details")
-                .font(.custom("Poppins-SemiBold", size: 20))
-                .foregroundColor(.black)
-
+            Text("Pet Details").font(.custom("Poppins-SemiBold", size: 20))
             Spacer()
-
             Button(action: {}) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 24, weight: .regular))
-                    .foregroundColor(.black)
+                Image(systemName: "square.and.arrow.up").font(.system(size: 24))
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Color(red: 246/255, green: 246/255, blue: 246/255))
     }
 
     private var ownerCard: some View {
         HStack {
             HStack(spacing: 14) {
-                Image(pet.ownerImageName)
+                Image(pet.owner_image ?? "owner") // seed.sql -> users.profile_image
                     .resizable()
                     .scaledToFill()
                     .frame(width: 54, height: 54)
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(pet.ownerName)
+                    Text(pet.owner_name ?? "James Parlor")
                         .font(.custom("Poppins-Medium", size: 16))
-                        .foregroundColor(.black)
-
-                    Text(pet.ownerRole)
+                    Text(pet.owner_role ?? "Pet Owner")
                         .font(.custom("Poppins-Regular", size: 15))
                         .foregroundColor(.gray)
                 }
             }
-
             Spacer()
-
             HStack(spacing: 12) {
                 CircleActionButton(systemName: "phone")
                 CircleActionButton(systemName: "message")
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.gray.opacity(0.45), lineWidth: 1)
-        )
+        .padding(14)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3), lineWidth: 1))
     }
 }
 
@@ -279,25 +220,5 @@ struct BackButtonView: View {
                 .font(.system(size: 28, weight: .medium))
                 .foregroundColor(.black)
         }
-    }
-}
-
-#Preview {
-    NavigationStack {
-        PetDetailsView(
-            pet: Pet(
-                name: "Husky",
-                imageName: "dog-pic",
-                category: .dog,
-                distance: "Distance 700m",
-                gender: "Male",
-                age: "2",
-                size: "Medium",
-                ownerName: "James Parlor",
-                ownerRole: "Pet Owner",
-                ownerImageName: "owner",
-                description: "Friendly, energetic, and loves outdoor walks. Husky is playful, social, and gets along well with people."
-            )
-        )
     }
 }

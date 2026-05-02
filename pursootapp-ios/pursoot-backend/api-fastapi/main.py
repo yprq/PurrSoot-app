@@ -66,6 +66,59 @@ def login(user_credentials: UserLogin):
             "email": user['email']
         }
     }
+
+#Pet Data
+@app.get("/pets")
+def get_all_pets():
+    try:
+        # 'one=True' parametresini sakın kullanma, liste istiyoruz!
+        pets = query_db("SELECT * FROM pets") 
+        return pets
+    except Exception as e:
+        return {"error": str(e)} # Hata durumunda da liste dönmediği için Swift hata verir
+
+#Pet Details
+@app.get("/pets/{pet_id}")
+def get_pet_details(pet_id: int):
+    query = """
+        SELECT 
+            p.*, 
+            u.username as owner_name, 
+            u.title as owner_role, 
+            u.profile_image as owner_image
+        FROM pets p
+        LEFT JOIN users u ON p.owner_id = u.id
+        WHERE p.id = %s
+    """
+    pet = query_db(query, (pet_id,), one=True)
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet bulunamadı")
+    return pet
+
+class PetCreate(BaseModel):
+    owner_id: int
+    name: str
+    species: str
+    breed: str
+    age: int
+    gender: str
+    description: str
+    latitude: float
+    longitude: float
+
+@app.post("/pets/add")
+def add_new_pet(pet: PetCreate):
+    try:
+        query = """
+            INSERT INTO pets (owner_id, name, species, breed, age, gender, description, latitude, longitude)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+        """
+        params = (pet.owner_id, pet.name, pet.species, pet.breed, pet.age, pet.gender, pet.description, pet.latitude, pet.longitude)
+        new_id = query_db(query, params, one=True)
+        return {"message": "Dostun başarıyla eklendi!", "id": new_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # --- YAPRAK: Map (Hayvanları Listele) ---
 @app.get("/map/pets")
 def get_pets():
