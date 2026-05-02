@@ -4,6 +4,7 @@ from auth_utils import hash_password
 import re
 from pydantic import BaseModel, EmailStr, field_validator
 from auth_utils import hash_password, verify_password, create_access_token
+from typing import Optional
 from routers import profile, posts  
 
 app = FastAPI()
@@ -79,6 +80,82 @@ def login(user_credentials: UserLogin):
             "email": user['email']
         }
     }
+
+#Pet Data
+@app.get("/pets")
+def get_all_pets(species: Optional[str] = None, gender: Optional[str] = None, age: Optional[int] = None):
+    try:
+        query = "SELECT * FROM pets WHERE 1=1"
+        params = []
+        
+        if species and species != "All":
+            query += " AND species = %s"
+            params.append(species)
+            
+        if gender and gender != "All":
+            query += " AND gender = %s"
+            params.append(gender)
+            
+        if age is not None:
+            query += " AND age = %s"
+            params.append(age)
+            
+        query += " ORDER BY created_at DESC"
+        
+        pets = query_db(query, tuple(params))
+        return pets if pets else []
+    except Exception as e:
+        print(f"Backend Filtreleme Hatası: {e}")
+        return []
+
+#Pet Details
+@app.get("/pets/{pet_id}")
+def get_pet_details(pet_id: int):
+    query = """
+        SELECT 
+            p.*, 
+            u.username as owner_name, 
+            u.title as owner_role, 
+            u.profile_image as owner_image
+        FROM pets p
+        LEFT JOIN users u ON p.owner_id = u.id
+        WHERE p.id = %s
+    """
+    pet = query_db(query, (pet_id,), one=True)
+    if not pet:
+        raise HTTPException(status_code=404, detail="Pet bulunamadı")
+    return pet
+
+class PetCreate(BaseModel):
+    owner_id: int
+    name: str
+    species: str
+    breed: str
+    age: int  # 0: <1 yaş, 5: 5+ yaş anlamında
+    gender: str
+    description: str
+    latitude: float
+    longitude: float
+    pet_image: Optional[str] = None # Base64 string olarak gelecek
+
+@app.post("/pets/add")
+def add_new_pet(pet: PetCreate):
+    try:
+        # SQL sorgusunda pet_image sütununun TEXT olduğundan emin olmalısın
+        query = """
+            INSERT INTO pets (owner_id, name, species, breed, age, gender, description, latitude, longitude, pet_image)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+        """
+        params = (pet.owner_id, pet.name, pet.species, pet.breed, pet.age, 
+                  pet.gender, pet.description, pet.latitude, pet.longitude, pet.pet_image)
+        
+        result = query_db(query, params, one=True)
+        return {"message": "Dostun başarıyla eklendi!", "id": result['id']}
+    except Exception as e:
+        # Docker loglarında hatayı net görmek için:
+        print(f"VERITABANI HATASI: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
+
 # --- YAPRAK: Map (Hayvanları Listele) ---
 @app.get("/map/pets")
 def get_pets():

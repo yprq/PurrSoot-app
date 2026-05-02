@@ -28,22 +28,6 @@ struct HomeView: View {
 // MARK: - Sub-Views & Helper Functions
 extension HomeView {
     
-    func convertToFriendPet(from purrPet: PurrPet) -> Pet {
-        return Pet(
-            name: purrPet.name,
-            imageName: "dog-pic",
-            category: purrPet.species.lowercased() == "kedi" ? .cat : .dog,
-            distance: "700m away",
-            gender: "Male",
-            age: "2",
-            size: "Medium",
-            ownerName: "PurrSoot User",
-            ownerRole: "Pet Owner",
-            ownerImageName: "owner",
-            description: "Bu can dostumuz sistemimizde kayıtlıdır. Koordinatları: \(purrPet.latitude), \(purrPet.longitude)"
-        )
-    }
-    
     private var headerSection: some View {
         HStack {
             VStack(alignment: .leading, spacing: 5) {
@@ -95,7 +79,7 @@ extension HomeView {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(viewModel.pets) { pet in
-                        NavigationLink(destination: PetDetailsView(pet: convertToFriendPet(from: pet))) {
+                        NavigationLink(destination: PetDetailsView(pet: pet)) {
                             VStack(alignment: .leading) {
                                 Image("dog-pic")
                                     .resizable()
@@ -107,7 +91,7 @@ extension HomeView {
                                     .fontWeight(.semibold)
                                     .foregroundColor(.black)
                                 
-                                Text(pet.species)
+                                Text(pet.species ?? "Unknown")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }

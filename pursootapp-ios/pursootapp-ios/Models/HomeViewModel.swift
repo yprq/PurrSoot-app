@@ -12,7 +12,7 @@ import Observation
 @Observable
 class HomeViewModel {
     // Backend'den gelecek pet listesi
-    var pets: [PurrPet] = []
+    var pets: [Pet] = []
     
     // Yükleme durumu (İstersen ekranda ProgressView göstermek için kullanabilirsin)
     var isLoading = false
@@ -39,7 +39,7 @@ class HomeViewModel {
             
             // HTTP durum kodunu kontrol et (200 OK mi?)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                let decodedPets = try JSONDecoder().decode([PurrPet].self, from: data)
+                let decodedPets = try JSONDecoder().decode([Pet].self, from: data)
                 
                 // UI güncellemelerini ana thread'e (MainActor) gönder
                 await MainActor.run {
