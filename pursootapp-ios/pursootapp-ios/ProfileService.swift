@@ -15,11 +15,26 @@ struct UserProfile: Codable, Equatable {
     let title: String
 }
 
+// ProfileService.swift içindeki Post struct'ını bununla değiştir:
+// ProfileService.swift içindeki Post struct'ını bununla tamamen değiştir:
+// ProfileService.swift içindeki Post struct'ını bununla tamamen değiştir:
 struct Post: Codable, Identifiable {
     let id: Int
     let user_id: Int
-    let content: String
+    let content: String // Backend'den gelen asıl veri
     let image_url: String
+    var likes_count: Int? = 0
+    var isLiked: Bool? = false
+    var selectedImageData: Data? = nil
+    var petImage: String? { return nil }
+    
+    // Hata 261:42 çözümü: Swift tarafında 'description' ismini kullanabilmen için köprü
+    var description: String {
+        return content
+    }
+    
+    var userName: String { "James Parlor" }
+    var userTitle: String { "Pet Owner" }
 }
 
 // --- SERVİS ---
@@ -89,5 +104,38 @@ class ProfileService: ObservableObject {
                 self.fetchUserPosts(userId: userId)
             }
         }.resume()
+    }
+    
+    func toggleLike(postId: Int) {
+        guard let url = URL(string: "http://127.0.0.1:8000/posts/\(postId)/like") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Like hatası: \(error.localizedDescription)")
+                return
+            }
+            // Başarılı olduğunda terminalde log görebilirsin
+            print("Like başarılı (200 OK)")
+        }.resume()
+    }
+    
+    func updateLocalLike(postId: Int) {
+        // 1. Dizide tıkladığımız postun sırasını (index) buluyoruz
+        if let index = self.posts.firstIndex(where: { $0.id == postId }) {
+            
+            // 2. Mevcut durumun tersini alıyoruz (Beğenilmişse beğenilmedi yap)
+            let currentStatus = self.posts[index].isLiked ?? false
+            self.posts[index].isLiked = !currentStatus
+            
+            // 3. Sayıyı artır veya azalt
+            let currentLikes = self.posts[index].likes_count ?? 0
+            self.posts[index].likes_count = currentLikes + (currentStatus ? -1 : 1)
+            
+            // 4. SwiftUI'a "Hey, veri değişti ekranı tazele!" diyoruz
+            self.objectWillChange.send()
+        }
     }
 } // Class burada bitti.
