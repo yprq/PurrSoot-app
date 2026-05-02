@@ -79,3 +79,29 @@ def get_user_posts(user_id: int):
     """
     posts = query_db(query, (user_id,))
     return posts if posts else []
+
+class CommentCreate(BaseModel):
+    user_id: int
+    content: str
+
+# Bir posta yorum yapma
+@router.post("/{post_id}/comments")
+def add_comment(post_id: int, comment: CommentCreate):
+    try:
+        query = "INSERT INTO comments (post_id, user_id, content) VALUES (%s, %s, %s) RETURNING id"
+        new_comment = query_db(query, (post_id, comment.user_id, comment.content), one=True)
+        return {"message": "Yorum eklendi", "id": new_comment['id']}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Bir postun yorumlarını getirme
+@router.get("/{post_id}/comments")
+def get_comments(post_id: int):
+    query = """
+        SELECT c.content, u.username 
+        FROM comments c 
+        JOIN users u ON c.user_id = u.id 
+        WHERE c.post_id = %s 
+        ORDER BY c.created_at ASC
+    """
+    return query_db(query, (post_id,))

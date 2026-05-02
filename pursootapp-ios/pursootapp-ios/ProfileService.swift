@@ -21,20 +21,31 @@ struct UserProfile: Codable, Equatable {
 struct Post: Codable, Identifiable {
     let id: Int
     let user_id: Int
-    let content: String // Backend'den gelen asıl veri
+    let content: String
     let image_url: String
     var likes_count: Int? = 0
     var isLiked: Bool? = false
     var selectedImageData: Data? = nil
     var petImage: String? { return nil }
+    var comments: [String]? = []
     
-    // Hata 261:42 çözümü: Swift tarafında 'description' ismini kullanabilmen için köprü
+    // --- BURAYI DEĞİŞTİR ---
+    // isSaved backend'den gelmediği için onu 'var' yapıp varsayılan değer veriyoruz
+    // ve CodingKeys ile decode edilmesini engelliyoruz ya da optional yapıyoruz.
+    var isSaved: Bool? = false
+    
     var description: String {
         return content
     }
     
     var userName: String { "James Parlor" }
     var userTitle: String { "Pet Owner" }
+
+    // Backend'den gelmeyen alanları decode etmemesi için CodingKeys ekleyelim
+    enum CodingKeys: String, CodingKey {
+        case id, user_id, content, image_url, likes_count, isLiked, comments
+        // isSaved'i buraya yazmazsan Swift onu backend'de aramaz, hata çözülür.
+    }
 }
 
 // --- SERVİS ---
@@ -137,5 +148,60 @@ class ProfileService: ObservableObject {
             // 4. SwiftUI'a "Hey, veri değişti ekranı tazele!" diyoruz
             self.objectWillChange.send()
         }
+    }
+    
+    func addComment(postId: Int, userId: Int, text: String) {
+        guard let url = URL(string: "http://127.0.0.1:8000/posts/\(postId)/comments") else { return }
+        
+        let body: [String: Any] = ["user_id": userId, "content": text]
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data {
+                 print("Backend Yanıtı: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }.resume()
+    }
+    
+    // --- SİLME İŞLEMİ ---
+    func deletePost(postId: Int) {
+        guard let url = URL(string: "http://127.0.0.1:8000/posts/\(postId)") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("Silme hatası: \(error.localizedDescription)")
+                return
+            }
+            
+            // Backend'den başarılı silme cevabı gelince listeyi yenile
+            DispatchQueue.main.async {
+                self.posts.removeAll { $0.id == postId }
+                print("Post \(postId) başarıyla silindi.")
+            }
+        }.resume()
+    }
+
+    // --- DÜZENLEME İŞLEMİ (Backend'e güncelleme gönderir) ---
+    func updatePost(postId: Int, newContent: String) {
+        guard let url = URL(string: "http://127.0.0.1:8000/posts/\(postId)") else { return }
+        
+        let body: [String: Any] = ["content": newContent] // Backend'in beklediği alan adı (genelde content olur)
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT" // Veya backend'e göre PATCH
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { _, _, _ in
+            // Güncelleme sonrası verileri tekrar çekerek arayüzü tazele
+            DispatchQueue.main.async {
+                self.fetchUserPosts(userId: 1)
+            }
+        }.resume()
     }
 } // Class burada bitti.
