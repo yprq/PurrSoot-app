@@ -15,17 +15,8 @@ def get_feed(category: str = "All"):
     query = "SELECT p.*, u.username, u.profile_image FROM posts p JOIN users u ON p.owner_id = u.id WHERE p.category = %s ORDER BY p.created_at DESC"
     return query_db(query, (category,))
 
-# --- GET: Sadece Bir Kullanıcının Postlarını Getir ---
-@router.get("/user/{user_id}")
-def get_user_posts(user_id: int):
-    query = "SELECT * FROM posts WHERE owner_id = %s ORDER BY created_at DESC"
-    return query_db(query, (user_id,))
 
-# --- POST: Yeni Gönderi Paylaş (CreatePostView) ---
-@router.post("/")
-def create_new_post(user_id: int, description: str, category: str = "All", image_url: str = None):
-    query = "INSERT INTO posts (owner_id, description, category, image_url) VALUES (%s, %s, %s, %s) RETURNING *"
-    return query_db(query, (user_id, description, category, image_url), one=True)
+
 
 # --- DELETE: Gönderi Sil (MyProfileView) ---
 @router.delete("/{post_id}")
@@ -33,9 +24,58 @@ def delete_post(post_id: int):
     query_db("DELETE FROM posts WHERE id = %s", (post_id,))
     return {"message": "Post başarıyla silindi"}
 
-# --- POST: Beğeni At/Çek ---
+
+
+# posts.py içinde bu kısmı güncelle:
+
+class PostCreate(BaseModel):
+    owner_id: int
+    description: str
+    image_url: Optional[str] = None
+    category: str = "All"
+
+@router.post("/")
+def create_new_post(post: PostCreate): # Veriyi 'post' objesi olarak alıyoruz
+    try:
+        query = """
+            INSERT INTO posts (owner_id, description, category, image_url) 
+            VALUES (%s, %s, %s, %s) 
+            RETURNING id, created_at
+        """
+        # post.owner_id şeklinde modelden çekiyoruz
+        params = (post.owner_id, post.description, post.category, post.image_url)
+        new_post = query_db(query, params, one=True)
+        return {"message": "Post başarıyla oluşturuldu", "post": new_post}
+    except Exception as e:
+        print(f"HATA: {e}")
+        raise HTTPException(status_code=500, detail="Veritabanı hatası")
+
+
+# --- LIKE İŞLEMİ ---
 @router.post("/{post_id}/like")
 def toggle_like(post_id: int):
-    query = "UPDATE posts SET likes_count = likes_count + 1 WHERE id = %s RETURNING likes_count"
-    result = query_db(query, (post_id,), one=True)
-    return result
+    try:
+        # Mevcut likes_count'u 1 artır ve yeni sayıyı geri döndür
+        query = "UPDATE posts SET likes_count = likes_count + 1 WHERE id = %s RETURNING likes_count"
+        result = query_db(query, (post_id,), one=True)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Post bulunamadı")
+            
+        return result # Örn: {"likes_count": 5}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- GÖNDERİLERİ GETİRME (Sıralama Önemli!) ---
+@router.get("/user/{user_id}")
+def get_user_posts(user_id: int):
+    # 'ORDER BY id DESC' ekledik ki postlar zıplamasın
+    query = """
+        SELECT id, owner_id AS user_id, description AS content, 
+               image_url, likes_count 
+        FROM posts 
+        WHERE owner_id = %s 
+        ORDER BY id DESC
+    """
+    posts = query_db(query, (user_id,))
+    return posts if posts else []

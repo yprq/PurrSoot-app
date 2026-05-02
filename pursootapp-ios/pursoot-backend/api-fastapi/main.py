@@ -5,8 +5,12 @@ import re
 from pydantic import BaseModel, EmailStr, field_validator
 from auth_utils import hash_password, verify_password, create_access_token
 from typing import Optional
+from routers import profile, posts  
 
 app = FastAPI()
+
+app.include_router(profile.router)
+app.include_router(posts.router)
 
 #Sign Up
 class UserCreate(BaseModel):
@@ -187,7 +191,51 @@ def get_all_feeds():
 # --- DILARA: Profile (Kullanıcı Bilgisi) ---
 @app.get("/profile/{user_id}")
 def get_profile(user_id: int):
-    user = query_db("SELECT username, email, created_at FROM users WHERE id = %s", (user_id,), one=True)
+    # Swift tarafındaki ProfileService'in beklediği tüm sütunları ekledik
+    query = """
+        SELECT id, username, email, title, profile_image, 
+               follower_count, following_count, post_count, 
+               adopted_count, donation_total, feeding_count 
+        FROM users WHERE id = %s
+    """
+    user = query_db(query, (user_id,), one=True)
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
     return user
+
+# --- BU YENİ FONKSİYONU DOSYANIN EN ALTINA EKLE ---
+# {user_id} süslü parantez içinde olmalı ki linkin bir parçası olsun
+@app.get("/user/{user_id}/posts")
+def get_user_posts(user_id: int):
+    try:
+        # Sorguyu tam olarak tablo yapına göre güncelledik:
+        # owner_id -> senin tablon
+        # description -> senin tablon
+        query = "SELECT id, owner_id AS user_id, description AS content, image_url FROM posts WHERE owner_id = %s"
+        posts = query_db(query, (user_id,))
+        return posts if posts else []
+    except Exception as e:
+        print(f"HATA: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# main.py içine ekle
+class PostCreate(BaseModel):
+    owner_id: int
+    description: str
+    image_url: str
+    category: str = "All"
+
+@app.post("/posts")
+def create_post(post: PostCreate):
+    try:
+        query = """
+            INSERT INTO posts (owner_id, description, image_url, category) 
+            VALUES (%s, %s, %s, %s) 
+            RETURNING id, created_at
+        """
+        params = (post.owner_id, post.description, post.image_url, post.category)
+        new_post = query_db(query, params, one=True)
+        return {"message": "Gönderi başarıyla oluşturuldu!", "post_id": new_post['id']}
+    except Exception as e:
+        print(f"POST EKLEME HATASI: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

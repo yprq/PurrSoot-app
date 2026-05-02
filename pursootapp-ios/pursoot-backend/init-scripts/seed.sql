@@ -66,3 +66,18 @@ SELECT
     'PurrSoot topluluğuna hoş geldiniz!' AS "description",
     'News' AS "category",
     NOW() AS "created_at";
+-- James'e bir köpek ekleyelim (Swift'teki Adopted sayısı için)
+INSERT INTO pets (owner_id, name, species, breed, description, latitude, longitude) 
+VALUES (1, 'Dost', 'Köpek', 'Golden', 'Çok uysal bir dost.', 38.4120, 27.1287);
+
+-- Alena bir post paylaşmış olsun
+INSERT INTO posts (owner_id, category, description, image_url, likes_count) 
+VALUES (2, 'Adoption', 'Bu tatlı kediye yuva arıyoruz.', 'cat_sample', 12);
+
+-- James, Alena'yı takip etsin
+INSERT INTO followers (follower_id, followed_id) VALUES (1, 2);
+
+-- James için örnek postlar (user_id yerine owner_id, content yerine description)
+INSERT INTO posts (owner_id, description, image_url) VALUES 
+(1, 'Bugün barınaktaki dostlarımızı ziyaret ettik. Çok sevgiye ihtiyaçları var!', 'post_image_1'),
+(1, 'Yeni sahiplendiğim köpeğimle ilk günümüz!', 'post_image_2');

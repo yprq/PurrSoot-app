@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 
+
 // --- MODELLER ---
 struct MenuItem: Identifiable {
     let id = UUID()
@@ -19,16 +20,17 @@ struct DonationRecord: Identifiable {
 
 // --- ANA EKRAN ---
 struct ProfileView: View {
+    @StateObject var profileService = ProfileService()
+
     @State private var showOptions = false             // Menüyü açan anahtar
     @State private var showGallery = false             // Galeriyi açan anahtar
     @State private var showCamera = false
     // Kamerayı açan anahtar
     @State private var showSettings = false
-    @State private var userName = "James Parlor"
-    @State private var userEmail = "jamesparlor@gmail.com"
+   
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var profileImage: Image? = Image("Robert_Pattinson")
-    @State private var donationCount = "3k+"
+    
     @State private var adoptedCount = "1"
     @State private var feedingCount = "72"
     @State private var userLocation = ""
@@ -48,22 +50,28 @@ struct ProfileView: View {
                     Color(.systemGray6).ignoresSafeArea()
                     
                     ScrollView {
+                        if let user = profileService.user {
                         VStack(spacing: 20) {
                             // Header
                             headerView
                             
                             // 1. KISIM: Profil Kartı
-                            ProfileHeaderCard(showOptions: $showOptions, profileImage: profileImage, name: userName, email: userEmail)
+                            ProfileHeaderCard(showOptions: $showOptions, 
+                                              profileImage: profileImage, 
+                                              name: user.username, 
+                                              email: user.email)
                             
                             // 2. KISIM: İstatistikler
-                            StatisticsRow(donation: donationCount, adopted: adoptedCount, feeding: feedingCount)
+                            StatisticsRow(donation: user.donation_total, 
+                                          adopted: "\(user.adopted_count)", 
+                                          feeding: "\(user.feeding_count)")
                             
                             // 3. KISIM: Menü Grupları
                             VStack(spacing: 25) {
                                 
                                 // 1. Kutu: Account Security
                                 ProfileMenuSection(title: "Account security") {
-                                    NavigationLink(destination: ProfileInfoView(name: userName, email: userEmail)) {
+                                    NavigationLink(destination: ProfileInfoView(name: user.username, email: user.email)) {
                                         MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
                                     }.buttonStyle(.plain)
                                     
@@ -115,12 +123,22 @@ struct ProfileView: View {
                             }
                             .padding(.top, 10)
                         }
-                        .padding()
+                        .padding()} 
+                        else {
+                        // Veri yüklenene kadar dönecek olan çark
+                        ProgressView("James Parlor aranıyor...")
+                            .padding(.top, 100)
+                    }
+
                     } // ScrollView sonu
                 } // ZStack sonu
-                .sheet(isPresented: $showSettings) {
-                    EditProfileView(name: $userName, email: $userEmail)
-                }
+
+                .onAppear {
+                profileService.fetchProfile(userId: 1)
+            }
+               // .sheet(isPresented: $showSettings) {
+                  //  EditProfileView(name: $userName, email: $userEmail)
+               // }
                 .confirmationDialog("Profile Photo", isPresented: $showOptions, titleVisibility: .visible) {
                     Button("Camera") { showCamera = true }
                     Button("Gallery") { showGallery = true }
