@@ -46,6 +46,13 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class FeedingCreate(BaseModel):
+    pet_id: int = None 
+    food_type: str
+    latitude: float
+    longitude: float
+    user_id: int
+
 @app.post("/auth/login")
 def login(user_credentials: UserLogin):
     query = "SELECT id, username, email, password_hash FROM users WHERE email = %s"
@@ -123,10 +130,22 @@ def add_new_pet(pet: PetCreate):
 @app.get("/map/pets")
 def get_pets():
     try:
-        pets = query_db("SELECT name, latitude, longitude, species FROM pets")
+        # SQL'e description ve breed ekledik (Database'de bu kolonlar zaten var)
+        pets = query_db("SELECT name, latitude, longitude, species, description, breed FROM pets")
         return pets
     except Exception:
         raise HTTPException(status_code=500, detail="Pet listesi alınamadı")
+
+@app.post("/map/feed")
+def save_feeding(feeding: FeedingCreate):
+    try:
+        # SQL sorgusu feedings tablosuna kayıt atar
+        query = "INSERT INTO feedings (pet_id, user_id, food_type, latitude, longitude) VALUES (%s, %s, %s, %s, %s) RETURNING id"
+        new_feeding = query_db(query, (feeding.pet_id, feeding.user_id, feeding.food_type, feeding.latitude, feeding.longitude), one=True)
+        return {"message": "Feeding activity saved!", "id": new_feeding['id']}
+    except Exception as e:
+        print(f"Besleme Hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- DILARA: Profile (Kullanıcı Bilgisi) ---
 @app.get("/profile/{user_id}")
