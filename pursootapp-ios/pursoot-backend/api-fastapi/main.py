@@ -46,8 +46,10 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+from typing import Optional 
+
 class FeedingCreate(BaseModel):
-    pet_id: int = None 
+    pet_id: Optional[int] = None 
     food_type: str
     latitude: float
     longitude: float

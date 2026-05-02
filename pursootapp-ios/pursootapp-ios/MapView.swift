@@ -27,12 +27,12 @@ struct MapView: View {
     @State private var selectedImage: UIImage?
     @State private var showPicker = false
     
-    // YENİ: Uyarı mesajları için stateler
     @State private var showAlert = false
     @State private var alertMessage = ""
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
+            // 1. MAP LAYER
             MapReader { proxy in
                 Map(position: $position) {
                     if let pin = selectedLocation {
@@ -49,97 +49,95 @@ struct MapView: View {
             }
             .ignoresSafeArea()
             
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    Color.clear
-                        .frame(height: UIScreen.main.bounds.height * 0.45)
-                        .contentShape(Rectangle())
-                        .allowsHitTesting(false)
+            // 2. PANEL LAYER (VStack + Spacer ile haritaya dokunma alanı açıldı)
+            VStack(spacing: 0) {
+                Spacer()
+                    .frame(minHeight: UIScreen.main.bounds.height * 0.45)
+                
+                VStack(alignment: .leading, spacing: 20) {
+                    Capsule()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 40, height: 5)
+                        .padding(.top, 12)
+                        .frame(maxWidth: .infinity)
                     
-                    VStack(alignment: .leading, spacing: 20) {
-                        Capsule()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 40, height: 5)
-                            .padding(.top, 12)
-                            .frame(maxWidth: .infinity)
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text("Select Location to feed")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                         
-                        VStack(alignment: .leading, spacing: 15) {
-                            Text("Select Location to feed")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Search or Tap on Map")
+                                .font(.caption)
+                                .foregroundColor(.gray)
                             
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Search or Tap on Map")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                            HStack {
+                                TextField("Enter an address...", text: $address)
+                                    .textFieldStyle(.plain)
+                                    .submitLabel(.search)
+                                    .onSubmit { searchAddress() }
                                 
-                                HStack {
-                                    TextField("Enter an address...", text: $address)
-                                        .textFieldStyle(.plain)
-                                        .submitLabel(.search)
-                                        .onSubmit { searchAddress() }
-                                    
-                                    if !address.isEmpty {
-                                        Button { address = "" } label: {
-                                            Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
-                                        }
+                                if !address.isEmpty {
+                                    Button { address = "" } label: {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
                                     }
                                 }
-                                .padding(12)
-                                .background(Color.customOffWhite)
-                                .cornerRadius(10)
                             }
-                            
-                            Divider().padding(.vertical, 5)
-                            
-                            Menu {
-                                ForEach(foods, id: \.self) { food in
-                                    Button(food) { selectedFood = food }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(selectedFood)
-                                        .foregroundColor(selectedFood.contains("Select") ? .gray : .black)
-                                    Spacer()
-                                    Image(systemName: "chevron.down").font(.caption)
-                                }
-                                .padding()
-                                .background(Color.customOffWhite)
-                                .cornerRadius(12)
-                            }
-                            
-                            Button { showPicker = true } label: {
-                                HStack {
-                                    Text(selectedImage == nil ? "Upload a photo" : "Photo selected")
-                                        .foregroundColor(.black)
-                                    Spacer()
-                                    Image(systemName: "camera").foregroundColor(.black)
-                                }
-                                .padding()
-                                .background(Color.customOffWhite)
-                                .cornerRadius(12)
-                            }
-                            
-                            Button {
-                                Task { await saveFeedingActivity() }
-                            } label: {
-                                Text("I Fed Them!")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(Color.customDarkSage)
-                                    .cornerRadius(14)
-                            }
+                            .padding(12)
+                            .background(Color.customOffWhite)
+                            .cornerRadius(10)
                         }
-                        .padding(.bottom, 60)
+                        
+                        Divider().padding(.vertical, 5)
+                        
+                        Menu {
+                            ForEach(foods, id: \.self) { food in
+                                Button(food) { selectedFood = food }
+                            }
+                        } label: {
+                            HStack {
+                                Text(selectedFood)
+                                    .foregroundColor(selectedFood.contains("Select") ? .gray : .black)
+                                Spacer()
+                                Image(systemName: "chevron.down").font(.caption)
+                            }
+                            .padding()
+                            .background(Color.customOffWhite)
+                            .cornerRadius(12)
+                        }
+                        
+                        Button { showPicker = true } label: {
+                            HStack {
+                                Text(selectedImage == nil ? "Upload a photo" : "Photo selected")
+                                    .foregroundColor(.black)
+                                Spacer()
+                                Image(systemName: "camera").foregroundColor(.black)
+                            }
+                            .padding()
+                            .background(Color.customOffWhite)
+                            .cornerRadius(12)
+                        }
+                        
+                        Button {
+                            Task { await saveFeedingActivity() }
+                        } label: {
+                            Text("I Fed Them!")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.customDarkSage)
+                                .cornerRadius(14)
+                        }
                     }
-                    .padding(.horizontal, 24)
-                    .background(Color.white)
-                    .cornerRadius(32, corners: [.topLeft, .topRight])
-                    .allowsHitTesting(true)
+                    .padding(.bottom, 60)
                 }
+                .padding(.horizontal, 24)
+                .background(Color.white)
+                .cornerRadius(32, corners: [.topLeft, .topRight])
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
             }
             
+            // 3. BACK BUTTON
             VStack {
                 HStack {
                     Button { isPresented = false } label: {
@@ -158,10 +156,9 @@ struct MapView: View {
         .sheet(isPresented: $showPicker) {
             ImagePicker(image: $selectedImage)
         }
-        // YENİ: İşlem sonucu için alert
         .alert("Status", isPresented: $showAlert) {
             Button("OK") {
-                if alertMessage.contains("Success") { isPresented = false }
+                if alertMessage.contains("Successfully") { isPresented = false }
             }
         } message: {
             Text(alertMessage)
@@ -215,7 +212,7 @@ struct MapView: View {
             "user_id": 1
         ]
         
-        guard let url = URL(string: "http://127.0.0.1:8000/map/feed") else { return }
+        guard let url = URL(string: "http://localhost:8000/map/feed") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -230,8 +227,10 @@ struct MapView: View {
                     showAlert = true
                 }
             } else {
+                // MARK: - TEŞHİS KODU BURADA
+                let detail = String(data: data, encoding: .utf8) ?? "No detail"
                 await MainActor.run {
-                    alertMessage = "Server error. Please check your backend connection."
+                    alertMessage = "Error Code: \((response as? HTTPURLResponse)?.statusCode ?? 0)\nDetail: \(detail)"
                     showAlert = true
                 }
             }
@@ -244,7 +243,7 @@ struct MapView: View {
     }
 }
 
-// MARK: - Helpers & Extensions (Aynı Kalıyor)
+// MARK: - Helpers (Corners & ImagePicker aynen kalıyor)
 struct RoundedCorner: Shape {
     var radius: CGFloat = .infinity
     var corners: UIRectCorner = .allCorners
@@ -253,11 +252,13 @@ struct RoundedCorner: Shape {
         return Path(path.cgPath)
     }
 }
+
 extension View {
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
     }
 }
+
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -276,6 +277,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 }
+
 #Preview {
     MapView(isPresented: .constant(true))
 }
