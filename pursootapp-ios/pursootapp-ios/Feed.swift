@@ -33,6 +33,7 @@ struct FeedsView: View {
         FeedPost(userName: "Alena Parlor", userTitle: "Pet Owner", userProfileImage: "Robert_Pattinson", postImage: "dog_sample_2", description: "Bu tatlı dostumuz yeni bir yuva arıyor. Çok oyuncu ve çocuklarla arası harika!", category: "Adoption", likeCount: 12),
         FeedPost(userName: "Gokul Harijan", userTitle: "Pet Owner", userProfileImage: "Gokul_Profile", postImage: "news_image", description: "Pet festivali bu hafta sonu İzmir'de gerçekleşecek! Kaçırmayın.", category: "News", likeCount: 45),
         FeedPost(userName: "Seda Demir", userTitle: "Vet", userProfileImage: "Seda_Profile", postImage: "lost_dog", description: "Bornova civarında köpeğimi kaybettim, görenlerin iletişime geçmesini rica ederim.", category: "Lost & Found", likeCount: 3),
+        
         FeedPost(userName: "Alena Parlor", userTitle: "Pet Owner", userProfileImage: "Robert_Pattinson", postImage: "cat_sample_2", description: "Sahiplendirme ilanımız güncellenmiştir.", category: "Adoption", likeCount: 22)
     ]
     

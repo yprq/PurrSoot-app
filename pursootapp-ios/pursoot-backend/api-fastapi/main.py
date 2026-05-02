@@ -173,6 +173,17 @@ def save_feeding(feeding: FeedingCreate):
         print(f"Besleme Hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/feeds/all")
+def get_all_feeds():
+    try:
+        # SQL View üzerinden tüm aktiviteleri (besleme + varsa diğerleri) çekiyoruz
+        query = "SELECT * FROM all_activity_feed ORDER BY created_at DESC"
+        feeds = query_db(query)
+        return feeds
+    except Exception as e:
+        print(f"Feed Çekme Hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # --- DILARA: Profile (Kullanıcı Bilgisi) ---
 @app.get("/profile/{user_id}")
 def get_profile(user_id: int):
