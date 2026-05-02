@@ -51,7 +51,15 @@ struct SignInView: View {
 
                             Text("Password").font(.custom("Poppins-SemiBold", size: 20))
                             AuthSecureField(placeholder: "••••••", text: $password)
-
+                            
+                            if let serverError = authManager.serverErrorMessage {
+                                Text(serverError)
+                                    .foregroundColor(.red)
+                                    .font(.custom("Poppins-Regular", size: 14))
+                                    .padding(.top, 8)
+                                    .transition(.opacity) // Yumuşak bir geçiş için
+                            }
+                            
                             HStack {
                                 Spacer()
                                 Button("Forgot Password?") { }
