@@ -1,27 +1,5 @@
 import SwiftUI
 
-struct Pet: Identifiable, Codable, Hashable {
-    let id: Int
-    let name: String
-    let species: String?
-    let breed: String?
-    let description: String?
-    let latitude: Double?
-    let longitude: Double?
-    let pet_image: String? // Postman'de null gelse bile opsiyonel olduğu için sorun çıkarmaz[cite: 5]
-    
-    // JOIN ile gelen alanlar
-    let owner_name: String?
-    let owner_role: String?
-    let owner_image: String?
-    
-    // UI için yardımcı alanlar (Postman'de olmayanları burada uyduruyoruz)
-    var gender: String { "Male" }
-    var age: String { "2" }
-    var size: String { "Medium" }
-    var displayDistance: String { "Distance 700m" }
-}
-
 enum PetCategory: String, CaseIterable {
     case all = "All"
     case dog = "Dog"
@@ -178,17 +156,29 @@ struct AdoptView: View {
         
         var body: some View {
             VStack(spacing: 0) {
+                // Üst kısım: Resim
                 ZStack {
                     cardColor.opacity(0.35)
-                    // Asset içindeki veya URL'deki resmi yükle
-                    Image(pet.pet_image ?? "dog-pic")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity, maxHeight: 145)
-                        .clipped()
+                    
+                    if let base64String = pet.pet_image,
+                       let data = Data(base64Encoded: base64String),
+                       let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145) // Genişliği sabitledik
+                            .clipped()
+                    } else {
+                        Image("nophoto")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145)
+                            .clipped()
+                    }
                 }
-                .frame(height: 145)
+                .frame(height: 145) // ZStack yüksekliğini sabitledik
                 
+                // Alt kısım: Metin alanı
                 VStack(alignment: .leading, spacing: 3) {
                     Text(pet.name)
                         .font(.custom("Poppins-Medium", size: 15))
@@ -198,13 +188,12 @@ struct AdoptView: View {
                     Text(pet.displayDistance)
                         .font(.custom("Poppins-Regular", size: 13))
                         .foregroundColor(.gray)
-                        .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading) // Metin kutusunu yaydık
                 .padding(12)
                 .background(cardColor)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
     }
 }

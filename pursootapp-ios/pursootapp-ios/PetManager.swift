@@ -52,31 +52,40 @@ class PetManager: ObservableObject {
         }.resume()
     }
     
-    func postPet(name: String, species: String, gender: String, age: String, size: String, description: String, completion: @escaping (Bool) -> Void) {
+    func postPet(name: String, species: String, breed: String, gender: String, age: String, description: String, imageData: Data?, completion: @escaping (Bool) -> Void) {
         guard let url = URL(string: "http://127.0.0.1:8000/pets/add") else { return }
         
-        // Backend INTEGER beklediği için age'i sayıya çeviriyoruz[cite: 3, 5]
-        let body: [String: Any] = [
-            "owner_id": 1, // Şimdilik James Parlor[cite: 5]
+        // Yaş metnini sayıya çevirme
+        let numericAge: Int
+        if age == "<1" { numericAge = 0 }
+        else if age == "5+" { numericAge = 5 }
+        else { numericAge = Int(age) ?? 1 }
+
+        var body: [String: Any] = [
+            "owner_id": 2, // Buraya kendi user_id'ni koymalısın (Profilindeki ID)
             "name": name,
             "species": species,
-            "breed": size, // Modelde breed yerine size da gönderebilirsin ya da ayırabilirsin
-            "age": Int(age) ?? 1,
+            "breed": breed,
+            "age": numericAge,
             "gender": gender,
             "description": description,
             "latitude": 38.412,
             "longitude": 27.1287
         ]
         
+        if let data = imageData {
+            body["pet_image"] = data.base64EncodedString()
+        }
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, _ in
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    self.fetchPets() // Listeyi hemen güncelle ki yeni pet gözüksün!
+                    self.fetchPets()
                     completion(true)
                 } else {
                     completion(false)

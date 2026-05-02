@@ -4,6 +4,7 @@ from auth_utils import hash_password
 import re
 from pydantic import BaseModel, EmailStr, field_validator
 from auth_utils import hash_password, verify_password, create_access_token
+from typing import Optional
 
 app = FastAPI()
 
@@ -80,11 +81,12 @@ def login(user_credentials: UserLogin):
 @app.get("/pets")
 def get_all_pets():
     try:
-        # 'one=True' parametresini sakın kullanma, liste istiyoruz!
-        pets = query_db("SELECT * FROM pets") 
-        return pets
+        # Swift tarafındaki 'displayAge' ve 'displayBreed' için tüm kolonları çekiyoruz[cite: 1, 3]
+        pets = query_db("SELECT * FROM pets ORDER BY created_at DESC") 
+        return pets if pets else []
     except Exception as e:
-        return {"error": str(e)} # Hata durumunda da liste dönmediği için Swift hata verir
+        # Hata durumunda boş liste dönmek Swift'in çökmesini engeller
+        return []
 
 #Pet Details
 @app.get("/pets/{pet_id}")
@@ -109,24 +111,30 @@ class PetCreate(BaseModel):
     name: str
     species: str
     breed: str
-    age: int
+    age: int  # 0: <1 yaş, 5: 5+ yaş anlamında
     gender: str
     description: str
     latitude: float
     longitude: float
+    pet_image: Optional[str] = None # Base64 string olarak gelecek
 
 @app.post("/pets/add")
 def add_new_pet(pet: PetCreate):
     try:
+        # SQL sorgusunda pet_image sütununun TEXT olduğundan emin olmalısın
         query = """
-            INSERT INTO pets (owner_id, name, species, breed, age, gender, description, latitude, longitude)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO pets (owner_id, name, species, breed, age, gender, description, latitude, longitude, pet_image)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
         """
-        params = (pet.owner_id, pet.name, pet.species, pet.breed, pet.age, pet.gender, pet.description, pet.latitude, pet.longitude)
-        new_id = query_db(query, params, one=True)
-        return {"message": "Dostun başarıyla eklendi!", "id": new_id}
+        params = (pet.owner_id, pet.name, pet.species, pet.breed, pet.age, 
+                  pet.gender, pet.description, pet.latitude, pet.longitude, pet.pet_image)
+        
+        result = query_db(query, params, one=True)
+        return {"message": "Dostun başarıyla eklendi!", "id": result['id']}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Docker loglarında hatayı net görmek için:
+        print(f"VERITABANI HATASI: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
 
 # --- YAPRAK: Map (Hayvanları Listele) ---
 @app.get("/map/pets")
