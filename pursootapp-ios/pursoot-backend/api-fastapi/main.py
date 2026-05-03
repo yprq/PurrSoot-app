@@ -7,7 +7,9 @@ from auth_utils import hash_password, verify_password, create_access_token
 from typing import Optional
 from routers import profile, posts  
 
+
 app = FastAPI()
+
 
 app.include_router(profile.router)
 app.include_router(posts.router)

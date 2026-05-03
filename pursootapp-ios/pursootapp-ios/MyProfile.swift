@@ -25,11 +25,13 @@ struct MyProfileView: View {
     @Environment(\.dismiss) var dismiss
     @State private var showCreatePostView = false
     
-    @StateObject var profileService: ProfileService = ProfileService()
+    // MyProfileView içinde:
+    @StateObject var profileService = ProfileService()
     
     // DÜZENLEME İÇİN GEREKLİ EKSİK DEĞİŞKENLER:
     @State private var showEditView = false
     @State private var editingPostID: UUID? = nil
+    @State private var editingPost: Post? = nil
     
     
     @State private var posts: [UserPost] = []
@@ -72,27 +74,23 @@ struct MyProfileView: View {
                         
                         // 2. POSTLAR
                         // MyProfileView içinde bu bloğu bul ve değiştir:
+                        // MyProfileView içinde:
                         if profileService.posts.isEmpty {
-                            VStack(spacing: 15) {
-                                ProgressView()
-                                Text("Gönderiler yükleniyor...")
-                            }
-                            .padding(.top, 50)
+                            ProgressView("Loading posts...")
                         } else {
-                            // BURASI ÖNEMLİ: Kendi yerel 'posts' dizine değil, servistekine bakmalı
-                            // MyProfileView içindeki post döngüsü:
-                            // MyProfileView içindeki 'else' bloğunun içini şununla değiştir:
-                            ForEach(profileService.posts, id: \.id) { backendPost in
+                            ForEach(profileService.posts.indices, id: \.self) { index in
                                 ProfilePostCard(
-                                    // post: .constant kısmında direkt transformPost kullanıyoruz
-                                    post: .constant(transformPost(backendPost)),
+                                    post: $profileService.posts[index], // Canlı Binding
                                     profileService: profileService,
-                                    backendPostId: backendPost.id,
-                                    onDelete: { print("Silme tıklandı") },
-                                    onEdit: { print("Düzenleme tıklandı") }
+                                    backendPostId: profileService.posts[index].id,
+                                    onDelete: { profileService.deletePost(postId: profileService.posts[index].id) },
+                                    onEdit: { self.editingPost = profileService.posts[index] // Düzenlenecek postu seçtik
+                                        self.showCreatePostView = true
+                                        // Burada editingPostID'yi setleyip showCreatePostView = true yapabilirsin
+                                        print("Düzenlenecek post: \(profileService.posts[index].id)") }
                                 )
                             }
-                            
+                        
                             // MyProfileView içine yardımcı fonksiyon:
                             
                         }
@@ -127,7 +125,7 @@ struct MyProfileView: View {
         }
         
         // MyProfile.swift dosyasının en altı (hiçbir struct içinde değil)
-       
+        
     }
     
     
@@ -141,7 +139,7 @@ struct MyProfileView: View {
             likeCount: backend.likes_count ?? 0,
             comments: []
         )
-    }
+    }}
     
     
     // --- YARDIMCI BİLEŞENLER ---
@@ -157,200 +155,228 @@ struct MyProfileView: View {
         }
     }
     
-    struct ProfilePostCard: View {
-        @Binding var post: UserPost
-        @ObservedObject var profileService: ProfileService
-        @State private var isCommenting: Bool = false
-        @State private var commentText: String = ""
-        let backendPostId: Int
-        var onDelete: () -> Void
-        var onEdit: () -> Void
-        
-        var body: some View {
-            VStack(alignment: .leading, spacing: 0) {
-                // --- HEADER ---
-                HStack(alignment: .center) {
-                    HStack(spacing: 10) {
-                        Image("Robert_Pattinson")
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 38, height: 38)
-                            .clipShape(Circle())
-                        
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(post.userName).font(.system(size: 14, weight: .bold))
-                            Text(post.userTitle).font(.system(size: 12)).foregroundColor(.gray)
-                        }
-                    }
+struct ProfilePostCard: View {
+    @Binding var post: Post
+    @ObservedObject var profileService: ProfileService
+    @State private var isCommenting: Bool = false
+    @State private var commentText: String = ""
+    let backendPostId: Int
+    var onDelete: () -> Void
+    var onEdit: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // --- HEADER ---
+            HStack(alignment: .center) {
+                HStack(spacing: 10) {
+                    Image("Robert_Pattinson")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 38, height: 38)
+                        .clipShape(Circle())
                     
-                    Spacer()
-                    
-                    // SAĞ: Üç Nokta (Menü)
-                    Menu {
-                        Button(action: {
-                            onEdit()
-                        }) {
-                            Label("Düzenle", systemImage: "pencil")
-                        }
-                        
-                        Button(role: .destructive, action: {
-                            onDelete()
-                        }) {
-                            Label("Sil", systemImage: "trash")
-                        }
-                    } label: {
-                        ZStack(alignment: .trailing) {
-                            Color.black.opacity(0.001)
-                                .frame(width: 44, height: 44)
-                            
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 20))
-                                .foregroundColor(.black)
-                                .padding(.trailing, 6)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.leading, 15)
-                .padding(.trailing, 8)
-                .padding(.top, 15)
-                .padding(.bottom, 12)
-                
-                // --- GÖRSEL ---
-                Group {
-                    if let data = post.selectedImageData, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage).resizable().scaledToFill()
-                    } else if let assetImage = post.petImage {
-                        Image(assetImage).resizable().scaledToFill()
-                    } else {
-                        Color.gray.opacity(0.1)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(post.userName).font(.system(size: 14, weight: .bold))
+                        Text(post.userTitle).font(.system(size: 12)).foregroundColor(.gray)
                     }
                 }
-                .frame(height: 220)
-                .frame(maxWidth: .infinity)
-                .cornerRadius(12)
-                .clipped()
-                .padding(.horizontal, 10)
                 
-                // --- ETKİLEŞİM BUTONLARI ---
-                // --- ETKİLEŞİM BUTONLARI ---
-                HStack(spacing: 22) {
-                    // 1. LIKE BUTONU
+                Spacer()
+                
+                // SAĞ: Üç Nokta (Menü)
+                Menu {
                     Button(action: {
-                        // UI'ı ve Servisteki veriyi anında güncelle
-                        profileService.updateLocalLike(postId: backendPostId)
+                        onEdit()
+                    }) {
+                        Label("Düzenle", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive, action: {
+                        onDelete()
+                    }) {
+                        Label("Sil", systemImage: "trash")
+                    }
+                } label: {
+                    ZStack(alignment: .trailing) {
+                        Color.black.opacity(0.001)
+                            .frame(width: 44, height: 44)
                         
-                        // Backend'e (Python tarafına) haber ver
-                        profileService.toggleLike(postId: backendPostId)
-                    }) {
-                        HStack(spacing: 4) {
-                            // Burası kritik: Görüntüyü direkt servisteki veriden alıyoruz
-                            if let currentPost = profileService.posts.first(where: { $0.id == backendPostId }) {
-                                Image(systemName: (currentPost.isLiked ?? false) ? "heart.fill" : "heart")
-                                    .foregroundColor((currentPost.isLiked ?? false) ? .red : .gray)
-                                
-                                if (currentPost.likes_count ?? 0) > 0 {
-                                    Text("\(currentPost.likes_count ?? 0)")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 20))
+                            .foregroundColor(.black)
+                            .padding(.trailing, 6)
                     }
-                    .buttonStyle(.borderless)
-                    
-                    // 2. YORUM BUTONU
-                    Button(action: {
-                        withAnimation(.easeInOut) {
-                            isCommenting.toggle() // Yazma alanını aç/kapat
-                        }
-                    }) {
-                        Image(systemName: "message")
-                            .foregroundColor(isCommenting ? .blue : .gray) // Aktifken rengi değişsin
-                    }
-                    .buttonStyle(.borderless)
-                    
-                    // 3. PAYLAŞ BUTONU (Gerçek iOS Paylaşımı)
-                    Button(action: {
-                        sharePost(text: post.description)
-                    }) {
-                        Image(systemName: "paperplane")
-                            .foregroundColor(.gray)
-                    }
-                    .buttonStyle(.borderless)
-                    
-                    Spacer()
-                    
-                    // 4. KAYDET BUTONU
-                    Button(action: {
-                        withAnimation {
-                            post.isSaved.toggle()
-                        }
-                    }) {
-                        Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
-                            .foregroundColor(post.isSaved ? .black : .gray)
-                    }
-                    .buttonStyle(.borderless)
+                    .contentShape(Rectangle())
                 }
-                .font(.system(size: 20))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                
-                
-                if isCommenting {
-                    HStack {
-                        TextField("Yorumunuzu yazın...", text: $commentText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .font(.system(size: 13))
-                            .padding(8)
-                            .background(Color.white.opacity(0.5))
-                            .cornerRadius(8)
-                        
-                        Button(action: {
-                            if !commentText.isEmpty {
-                                withAnimation {
-                                    post.comments.append(commentText) // Yorumu listeye ekler
-                                    commentText = "" // Kutuyu temizler
-                                    isCommenting = false // Yazma alanını kapatır
-                                }
-                            }
-                        }) {
-                            Image(systemName: "paperplane.fill")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding(.horizontal, 15)
-                    .padding(.bottom, 10)
-                    .transition(.move(edge: .top).combined(with: .opacity)) // Şık bir açılış animasyonu
-                }
-                
-                if !post.comments.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(post.comments, id: \.self) { comment in
-                            HStack(alignment: .top, spacing: 5) {
-                                Text("James Parlor").font(.system(size: 13, weight: .bold)) // Yorum yapanın adı
-                                Text(comment).font(.system(size: 13))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 10)
-                }
-                
-                // --- AÇIKLAMA ---
-                Text(post.description)
-                    .font(.system(size: 13))
-                    .lineSpacing(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 20)
+                .buttonStyle(PlainButtonStyle())
             }
-            .background(Color(red: 0.98, green: 0.92, blue: 0.90))
-            .cornerRadius(24)
-            .padding(.horizontal, 16)
+            .padding(.leading, 15)
+            .padding(.trailing, 8)
+            .padding(.top, 15)
+            .padding(.bottom, 12)
+            
+            // --- GÖRSEL ---
+            Group {
+                if let data = post.selectedImageData, let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage).resizable().scaledToFill()
+                } else if let assetImage = post.petImage {
+                    Image(assetImage).resizable().scaledToFill()
+                } else {
+                    Color.gray.opacity(0.1)
+                }
+            }
+            .frame(height: 220)
+            .frame(maxWidth: .infinity)
+            .cornerRadius(12)
+            .clipped()
+            .padding(.horizontal, 10)
+            
+            // --- ETKİLEŞİM BUTONLARI ---
+            // --- ETKİLEŞİM BUTONLARI ---
+            HStack(spacing: 22) {
+                // 1. LIKE BUTONU
+                Button(action: {
+                    // UI'ı ve Servisteki veriyi anında güncelle
+                    profileService.updateLocalLike(postId: backendPostId)
+                    
+                    // Backend'e (Python tarafına) haber ver
+                    profileService.toggleLike(postId: backendPostId)
+                }) {
+                    HStack(spacing: 4) {
+                        // Burası kritik: Görüntüyü direkt servisteki veriden alıyoruz
+                        if let currentPost = profileService.posts.first(where: { $0.id == backendPostId }) {
+                            Image(systemName: (currentPost.isLiked ?? false) ? "heart.fill" : "heart")
+                                .foregroundColor((currentPost.isLiked ?? false) ? .red : .gray)
+                            
+                            if (currentPost.likes_count ?? 0) > 0 {
+                                Text("\(currentPost.likes_count ?? 0)")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                }
+                .buttonStyle(.borderless)
+                
+                // 2. YORUM BUTONU
+                // ProfilePostCard içindeki yorum gönderme butonu (kağıt uçak ikonu)
+                Button(action: {
+                    withAnimation { isCommenting.toggle() }
+                }) {
+                    Image(systemName: "message")
+                        .foregroundColor(isCommenting ? .blue : .gray)
+                }
+                .buttonStyle(.borderless)
+                
+                // 3. PAYLAŞ BUTONU (Gerçek iOS Paylaşımı)
+                Button(action: {
+                    sharePost(text: post.description)
+                }) {
+                    Image(systemName: "paperplane")
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.borderless)
+                
+                Spacer()
+                
+                // 4. KAYDET BUTONU
+                // KAYDET BUTONU (ProfilePostCard içinde)
+                Button(action: {
+                    withAnimation {
+                        // Binding olduğu için $ ile erişiyoruz
+                        let currentStatus = post.isSaved ?? false
+                        post.isSaved = !currentStatus
+                    }
+                }) {
+                    Image(systemName: (post.isSaved ?? false) ? "bookmark.fill" : "bookmark")
+                        .foregroundColor((post.isSaved ?? false) ? .black : .gray)
+                }
+            }
+            .buttonStyle(.borderless)
+            
+            .font(.system(size: 20))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            
+            
+            if isCommenting {
+                HStack {
+                    TextField("Write comment...", text: $commentText)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .font(.system(size: 13))
+                        .padding(8)
+                        .background(Color.white.opacity(0.5))
+                        .cornerRadius(8)
+                    
+                    Button(action: {
+                        if !commentText.isEmpty {
+                            // 1. Backend'e gönder
+                            profileService.addComment(postId: backendPostId, userId: 1, text: commentText)
+                            
+                            // 2. UI GÜNCELLEME (Güvenli Yol)
+                            withAnimation(.spring()) {
+                                // Eğer comments nil ise önce boş bir dizi oluştur, sonra ekle
+                                if post.comments == nil {
+                                    post.comments = [commentText]
+                                } else {
+                                    post.comments?.append(commentText)
+                                }
+                                
+                                // Temizlik
+                                commentText = ""
+                                isCommenting = false
+                            }
+                        }
+                    }) {
+                        Text("Send")
+                            .fontWeight(.bold)
+                            .font(.system(size: 14))
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal, 15)
+                .padding(.bottom, 10)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // ProfilePostCard.swift içinde etkileşim butonlarının hemen altına:
+            
+            if let comments = post.comments, !comments.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(comments, id: \.self) { comment in // İndis yerine doğrudan metni kullanıyoruz
+                        HStack(alignment: .top, spacing: 5) {
+                            Text("James Parlor")
+                                .font(.system(size: 13, weight: .bold))
+                            Text(comment)
+                                .font(.system(size: 13))// İndis ile veriyi alıyoruz
+                                .font(.system(size: 13))
+                                .foregroundColor(.black.opacity(0.8))
+                                .fixedSize(horizontal: false, vertical: true) // Metnin kaybolmasını engeller
+                        }
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.4)) // Yorum alanını biraz daha belirgin yapalım
+                .cornerRadius(12)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
+            }
+            
+            // --- AÇIKLAMA ---
+            Text(post.description)
+                .font(.system(size: 13))
+                .lineSpacing(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 20)
         }
-    }
+        .background(Color(red: 0.98, green: 0.92, blue: 0.90))
+        .cornerRadius(24)
+        .padding(.horizontal, 16)
+    }}
+    
     
     struct CreatePostView: View {
         @Environment(\.dismiss) var dismiss
@@ -437,24 +463,28 @@ struct MyProfileView: View {
     }
     struct MyProfileView_Previews: PreviewProvider {
         static var previews: some View {
-            let mockService = ProfileService()
+            // Preview için bir instance oluşturuyoruz
+            let view = MyProfileView()
             
             // Mock verileri dolduruyoruz
-            mockService.user = UserProfile(
+            view.profileService.user = UserProfile(
                 id: 1, username: "James Parlor", email: "james@test.com", profile_image: "James_Profile",
                 follower_count: 72, following_count: 15, post_count: 2, adopted_count: 5,
                 donation_total: "3k+", feeding_count: 72, title: "Pet Owner"
             )
             
+            // Mock bir post ekleyelim ki boş görünmesin
+            view.profileService.posts = [
+                Post(id: 1, user_id: 1, content: "Merhaba! Bu bir önizleme postudur.", image_url: "dog_sample", likes_count: 5, isLiked: true)
+            ]
             
-            // Buradaki önemli nokta: profileService'i doğrudan içine veriyoruz
-            return MyProfileView(profileService: mockService)
+            return view
         }
     }
     
     
     
-}
+
 
 // MyProfile.swift dosyasının EN ALTI (Hiçbir struct'ın içinde değil)
 
