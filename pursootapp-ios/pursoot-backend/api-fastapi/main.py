@@ -87,22 +87,32 @@ def login(user_credentials: UserLogin):
 @app.get("/pets")
 def get_all_pets(species: Optional[str] = None, gender: Optional[str] = None, age: Optional[int] = None):
     try:
-        query = "SELECT * FROM pets WHERE 1=1"
+        # Sorguyu JOIN ile güncelledik
+        query = """
+            SELECT 
+                p.*, 
+                u.username as owner_name, 
+                u.title as owner_role, 
+                u.profile_image as owner_image
+            FROM pets p
+            LEFT JOIN users u ON p.owner_id = u.id
+            WHERE 1=1
+        """
         params = []
         
         if species and species != "All":
-            query += " AND species = %s"
+            query += " AND p.species = %s"
             params.append(species)
             
         if gender and gender != "All":
-            query += " AND gender = %s"
+            query += " AND p.gender = %s"
             params.append(gender)
             
         if age is not None:
-            query += " AND age = %s"
+            query += " AND p.age = %s"
             params.append(age)
             
-        query += " ORDER BY created_at DESC"
+        query += " ORDER BY p.created_at DESC"
         
         pets = query_db(query, tuple(params))
         return pets if pets else []
@@ -179,6 +189,27 @@ def save_feeding(feeding: FeedingCreate):
         print(f"Besleme Hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/feeds/all")
+def get_all_feeds():
+    try:
+        # SQL View üzerinden tüm aktiviteleri (besleme + varsa diğerleri) çekiyoruz
+        query = "SELECT * FROM all_activity_feed ORDER BY created_at DESC"
+        feeds = query_db(query)
+        return feeds
+    except Exception as e:
+        print(f"Feed Çekme Hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/tips")
+def get_all_tips():
+    try:
+        # Veritabanından tüm ipuçlarını çekiyoruz
+        tips = query_db("SELECT id, title, subtitle, image_name FROM tips")
+        return tips if tips else []
+    except Exception as e:
+        print(f"Tips Çekme Hatası: {e}")
+        return []
+    
 # --- DILARA: Profile (Kullanıcı Bilgisi) ---
 @app.get("/profile/{user_id}")
 def get_profile(user_id: int):
@@ -230,3 +261,5 @@ def create_post(post: PostCreate):
     except Exception as e:
         print(f"POST EKLEME HATASI: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
