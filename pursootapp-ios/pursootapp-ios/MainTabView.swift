@@ -37,7 +37,7 @@ struct MainTabView: View {
                     }
                 Spacer()
                 
-                ChatView()
+                FeedsView()
                     .tag(Tab.chat)
                     .tabItem {
                         Image(selectedTab == .chat ? "chat_bubble-3" : "chat_bubble-2")
