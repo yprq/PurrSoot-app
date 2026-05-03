@@ -29,6 +29,11 @@ struct HomeView: View {
             }
             .task {
                 await viewModel.fetchData()
+            }.onAppear {
+                // Sayfaya her geri dönüldüğünde verileri tazeler
+                Task {
+                    await viewModel.fetchData()
+                }
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -149,11 +154,42 @@ extension HomeView {
                     ForEach(viewModel.pets) { pet in
                         NavigationLink(destination: PetDetailsView(pet: pet).toolbar(.hidden, for: .navigationBar)) {
                             VStack(alignment: .leading) {
-                                Image("dog-pic")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 140, height: 140)
-                                    .cornerRadius(12)
+                                // --- DİNAMİK RESİM ALANI ---
+                                Group {
+                                    if let imageSource = pet.pet_image, !imageSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        if imageSource.hasPrefix("http") {
+                                            AsyncImage(url: URL(string: imageSource)) { phase in
+                                                switch phase {
+                                                case .success(let image):
+                                                    image.resizable().scaledToFill()
+                                                case .failure(_), .empty:
+                                                    // Görsel yüklenemezse veya boşsa nophoto göster
+                                                    Image("nophoto")
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
+                                            }
+                                        } else if let data = Data(base64Encoded: imageSource),
+                                                  let uiImage = UIImage(data: data) {
+                                            Image(uiImage: uiImage).resizable().scaledToFill()
+                                        } else {
+                                            // Asset içinde bu isimde bir resim varsa onu basar
+                                            Image(imageSource).resizable().scaledToFill()
+                                        }
+                                    } else {
+                                        // pet_image nil veya boş string ise buraya düşer
+                                        Image("nophoto")
+                                            .resizable()
+                                            .scaledToFill()
+                                    }
+                                }
+                                .frame(width: 140, height: 140)
+                                .background(Color.gray.opacity(0.1)) // Resim yoksa bile alanı belirginleştirir
+                                .cornerRadius(12)
+                                .clipped()
+                                
                                 Text(pet.name).fontWeight(.semibold).foregroundColor(.black)
                                 Text(pet.species ?? "Unknown").font(.caption).foregroundColor(.gray)
                             }
@@ -165,7 +201,6 @@ extension HomeView {
             }
         }
     }
-
     private var tipsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {

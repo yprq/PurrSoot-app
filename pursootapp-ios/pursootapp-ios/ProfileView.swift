@@ -22,164 +22,153 @@ struct DonationRecord: Identifiable {
 struct ProfileView: View {
     @StateObject var profileService = ProfileService()
 
-    @State private var showOptions = false             // Menüyü açan anahtar
-    @State private var showGallery = false             // Galeriyi açan anahtar
+    @State private var showOptions = false
+    @State private var showGallery = false
     @State private var showCamera = false
-    // Kamerayı açan anahtar
     @State private var showSettings = false
    
     @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var profileImage: Image? = Image("Robert_Pattinson")
+    @State private var profileImage: Image? = nil
     
-    @State private var adoptedCount = "1"
-    @State private var feedingCount = "72"
+    // Form durumları (Filtreler ve ayarlar için)
     @State private var userLocation = ""
     @State private var isLocationVisible = true
-
-    // Volunteering
     @State private var isVolunteeringActive = false
-
-    // Pet Preferences (Filtreler)
     @State private var petType = "All"
     @State private var petAge = 1
     
     var body: some View {
-            NavigationStack {
-                ZStack {
-                    // Arka Plan
-                    Color(.systemGray6).ignoresSafeArea()
-                    
+        NavigationStack {
+            ZStack {
+                Color(.systemGray6).ignoresSafeArea()
+                
+                if let user = profileService.user {
                     ScrollView {
-                        if let user = profileService.user {
                         VStack(spacing: 20) {
-                            // Header
-                            headerView
+                            headerBar
                             
-                            // 1. KISIM: Profil Kartı
-                            ProfileHeaderCard(showOptions: $showOptions, 
-                                              profileImage: profileImage, 
-                                              name: user.username, 
-                                              email: user.email)
+                            // 1. KISIM: Profil Kartı (Dinamik PFP ve İsim)[cite: 9]
+                            ProfileHeaderCard(
+                                showOptions: $showOptions,
+                                profileImage: profileImage,
+                                name: user.username,
+                                email: user.email,
+                                serverImageName: user.profile_image
+                            )
                             
-                            // 2. KISIM: İstatistikler
-                            StatisticsRow(donation: user.donation_total, 
-                                          adopted: "\(user.adopted_count)", 
-                                          feeding: "\(user.feeding_count)")
+                            // 2. KISIM: İstatistikler (Backend'den gelen veriler)[cite: 9]
+                            StatisticsRow(
+                                donation: user.donation_total,
+                                adopted: "\(user.adopted_count ?? 0)",
+                                feeding: "\(user.feeding_count)"
+                            )
                             
-                            // 3. KISIM: Menü Grupları
-                            VStack(spacing: 25) {
-                                
-                                // 1. Kutu: Account Security
-                                ProfileMenuSection(title: "Account security") {
-                                    NavigationLink(destination: ProfileInfoView(name: user.username, email: user.email)) {
-                                        MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: ForgotPasswordView()) {
-                                        MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: ResetPasswordView()) {
-                                        MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: PhoneVerificationView()) {
-                                        MenuItemRow(item: MenuItem(icon: "phone", text: "Phone Number Verification", isVerified: true, status: false))
-                                    }.buttonStyle(.plain)
-                                }
-
-                                // 2. Kutu: User Preferences
-                                ProfileMenuSection(title: "User Preferences") {
-                                    NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
-                                        MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: LocationSettingsView(location: $userLocation, isVisible: $isLocationVisible)) {
-                                        MenuItemRow(item: MenuItem(icon: "mappin.and.ellipse", text: "Location and Accessibility"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
-                                        MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
-                                    }.buttonStyle(.plain)
-                                }
-                                
-                                // 3. Kutu: Donation
-                                ProfileMenuSection(title: "Donation") {
-                                    NavigationLink(destination: UPISettingsView()) {
-                                        MenuItemRow(item: MenuItem(icon: "creditcard", text: "UPI Settings"))
-                                    }.buttonStyle(.plain)
-                                    
-                                    NavigationLink(destination: DonationHistoryView()) {
-                                        MenuItemRow(item: MenuItem(icon: "clock.arrow.circlepath", text: "Donation History"))
-                                    }.buttonStyle(.plain)
-                                }
-                                
-                                // 4. Kutu: Support
-                                ProfileMenuSection(title: "Support") {
-                                    NavigationLink(destination: SupportView()) {
-                                        MenuItemRow(item: MenuItem(icon: "envelope.fill", text: "Contact Us"))
-                                    }.buttonStyle(.plain)
-                                }
+                            // 3. KISIM: Menü Grupları (Bölümlere ayırarak derleyiciyi rahatlattık)
+                            Group {
+                                securityMenu(user: user)
+                                preferencesMenu()
+                                donationAndSupportMenu()
                             }
-                            .padding(.top, 10)
                         }
-                        .padding()} 
-                        else {
-                        // Veri yüklenene kadar dönecek olan çark
-                        ProgressView("James Parlor aranıyor...")
-                            .padding(.top, 100)
+                        .padding()
                     }
-
-                    } // ScrollView sonu
-                } // ZStack sonu
-
-                .onAppear {
-                profileService.fetchProfile(userId: 1)
-            }
-               // .sheet(isPresented: $showSettings) {
-                  //  EditProfileView(name: $userName, email: $userEmail)
-               // }
-                .confirmationDialog("Profile Photo", isPresented: $showOptions, titleVisibility: .visible) {
-                    Button("Camera") { showCamera = true }
-                    Button("Gallery") { showGallery = true }
-                    Button("Cancel", role: .cancel) { }
+                } else {
+                    ProgressView("Loading Profile...")
+                        .padding(.top, 100)
                 }
-            } // NavigationStack sonu
-            .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraPlaceholderView(image: $profileImage)
             }
-            .onChange(of: selectedItem) { newItem in
-                Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        profileImage = Image(uiImage: uiImage)
-                    }
+            .onAppear {
+                // Giriş yapan kullanıcının ID'sini UserDefaults'tan çekiyoruz[cite: 11]
+                let loggedInUserId = UserDefaults.standard.integer(forKey: "current_user_id")
+                if loggedInUserId != 0 {
+                    profileService.fetchProfile(userId: loggedInUserId)
+                }
+            }
+            .confirmationDialog("Profile Photo", isPresented: $showOptions, titleVisibility: .visible) {
+                Button("Camera") { showCamera = true }
+                Button("Gallery") { showGallery = true }
+                Button("Cancel", role: .cancel) { }
+            }
+        }
+        .photosPicker(isPresented: $showGallery, selection: $selectedItem, matching: .images)
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPlaceholderView(image: $profileImage)
+        }
+        .onChange(of: selectedItem) { newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    profileImage = Image(uiImage: uiImage)
                 }
             }
         }
+    }
+}
 
-        // Küçük bir yardımcı: Header
-        var headerView: some View {
-            HStack {
-                Spacer()
-                Text("Profile").font(.headline).fontWeight(.bold)
-                Spacer()
-                Button(action: { showSettings = true }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(.primary)
-                }
+// MARK: - Menü Bölümleri (Subviews)
+extension ProfileView {
+    
+    private var headerBar: some View {
+        HStack {
+            Spacer()
+            Text("Profile").font(.headline).fontWeight(.bold)
+            Spacer()
+            Button(action: { showSettings = true }) {
+                Image(systemName: "slider.horizontal.3").foregroundColor(.primary)
             }
-            .padding(.horizontal)
-        }}
+        }
+        .padding(.horizontal)
+    }
 
-// --- BİLEŞENLER ---
+    private func securityMenu(user: UserProfile) -> some View {
+        ProfileMenuSection(title: "Account security") {
+            NavigationLink(destination: ProfileInfoView(name: user.username, email: user.email)) {
+                MenuItemRow(item: MenuItem(icon: "person", text: "Profile Info"))
+            }.buttonStyle(.plain)
+            
+            NavigationLink(destination: ForgotPasswordView()) {
+                MenuItemRow(item: MenuItem(icon: "lock", text: "Forgot Password"))
+            }.buttonStyle(.plain)
+            
+            NavigationLink(destination: ResetPasswordView()) {
+                MenuItemRow(item: MenuItem(icon: "arrow.counterclockwise", text: "Reset Password"))
+            }.buttonStyle(.plain)
+        }
+    }
+
+    private func preferencesMenu() -> some View {
+        ProfileMenuSection(title: "User Preferences") {
+            NavigationLink(destination: PetPreferencesView(type: $petType, age: $petAge)) {
+                MenuItemRow(item: MenuItem(icon: "pawprint", text: "Pet Preferences"))
+            }.buttonStyle(.plain)
+            
+            NavigationLink(destination: VolunteeringSettingsView(isActive: $isVolunteeringActive)) {
+                MenuItemRow(item: MenuItem(icon: "heart.text.square", text: "Volunteering"))
+            }.buttonStyle(.plain)
+        }
+    }
+
+    private func donationAndSupportMenu() -> some View {
+        ProfileMenuSection(title: "Support & Donation") {
+            NavigationLink(destination: DonationHistoryView()) {
+                MenuItemRow(item: MenuItem(icon: "clock.arrow.circlepath", text: "Donation History"))
+            }.buttonStyle(.plain)
+            
+            NavigationLink(destination: SupportView()) {
+                MenuItemRow(item: MenuItem(icon: "envelope.fill", text: "Contact Us"))
+            }.buttonStyle(.plain)
+        }
+    }
+}
+
+// MARK: - Dinamik Bileşenler
 
 struct ProfileHeaderCard: View {
     @Binding var showOptions: Bool
     let profileImage: Image?
-    let name: String  // Bunu ekle
+    let name: String
     let email: String
+    let serverImageName: String?
     
     var body: some View {
         HStack(spacing: 15) {
@@ -187,9 +176,7 @@ struct ProfileHeaderCard: View {
                 if let image = profileImage {
                     image.resizable().scaledToFill()
                 } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .foregroundColor(.gray)
+                    ProfileImageView(imageName: serverImageName)
                 }
             }
             .frame(width: 70, height: 70)
@@ -198,8 +185,8 @@ struct ProfileHeaderCard: View {
             .onTapGesture { showOptions = true }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                Text(email)
+                Text(name).font(.custom("Poppins-SemiBold", size: 18))
+                Text(email).font(.custom("Poppins-Regular", size: 14)).foregroundColor(.gray)
             }
             Spacer()
         }
@@ -209,28 +196,41 @@ struct ProfileHeaderCard: View {
     }
 }
 
-// Kamera için Geçici Görünüm (Gerçek kamera için UIViewControllerRepresentable gerekir)
-struct CameraPlaceholderView: View {
-    @Binding var image: Image?
-    @Environment(\.dismiss) var dismiss
+struct ProfileImageView: View {
+    let imageName: String?
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Camera Module").font(.title)
-            Text("Camera does not work on simulator, real device required.")
-                .multilineTextAlignment(.center).padding()
-            Button("Close") { dismiss() }
-                .padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
+        Group {
+            // Sadece nil değil, aynı zamanda boş string ("") olup olmadığını da kontrol ediyoruz
+            if let imgName = imageName, !imgName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if imgName.hasPrefix("http") {
+                    AsyncImage(url: URL(string: imgName)) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: { ProgressView() }
+                } else if let data = Data(base64Encoded: imgName), let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage).resizable().scaledToFill()
+                } else {
+                    // Eğer asset adı olarak gönderildiyse[cite: 1]
+                    Image(imgName)
+                        .resizable()
+                        .scaledToFill()
+                }
+            } else {
+                // Backend verisi boşsa veya nil ise direkt bu asseti bas[cite: 1]
+                Image("nopfp")
+                    .resizable()
+                    .scaledToFill()
+            }
         }
+        .frame(width: 70, height: 70)
+        .clipped()
     }
 }
 
-// --- DİĞER BİLEŞENLER (StatisticsRow, StatBox, MenuSection aynen kalıyor) ---
 struct StatisticsRow: View {
     let donation: String
     let adopted: String
     let feeding: String
-    
     var body: some View {
         HStack(spacing: 10) {
             StatBox(value: donation, title: "Donation", icon: "volunteer_activism")
@@ -239,9 +239,7 @@ struct StatisticsRow: View {
             Divider().frame(height: 30)
             StatBox(value: feeding, title: "Feeding", icon: "gift")
         }
-        .padding(12)
-        .background(Color.green.opacity(0.1))
-        .cornerRadius(20)
+        .padding(12).background(Color.green.opacity(0.1)).cornerRadius(20)
     }
 }
 
@@ -251,64 +249,25 @@ struct StatBox: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(value).font(.headline).fontWeight(.bold)
             HStack(spacing: 4) {
-                Image(icon) // systemName: kısmını sildik
-                        .resizable() // Boyutlandırılabilir yaptık
-                        .scaledToFit()
-                        .frame(width: 12, height: 12)
-                        .padding(8) // İkon ile kare kenarı arasındaki boşluk
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.green.opacity(0.5)) // Biraz daha koyu yeşil (opaklığı artırabilirsin)
-                                        )
-                    
-                    Text(title).font(.caption2)
-            }
-            .foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10).background(Color.white).cornerRadius(15).shadow(color: Color.black.opacity(0.05), radius: 5)
-    }
-}
-
-struct EditProfileView: View {
-    @Binding var name: String   // Ana sayfadaki userName'e bağlı
-    @Binding var email: String  // Ana sayfadaki userEmail'e bağlı
-    @Environment(\.dismiss) var dismiss // Sayfayı kapatmak için
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("User Information")) {
-                    TextField("Full Name", text: $name)
-                    TextField("Email", text: $email)
-                }
-            }
-            .navigationTitle("Edit Profile")
-            .navigationBarItems(trailing: Button("Done") { dismiss() })
-        }
+                Image(icon).resizable().scaledToFit().frame(width: 12, height: 12).padding(8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.5)))
+                Text(title).font(.caption2)
+            }.foregroundColor(.gray)
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(10).background(Color.white).cornerRadius(15).shadow(color: Color.black.opacity(0.05), radius: 5)
     }
 }
 
 struct ProfileMenuSection<Content: View>: View {
     let title: String
     @ViewBuilder let content: () -> Content
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-                .padding(.leading, 5)
-            
-            VStack(spacing: 18) {
-                content() // İçeriği dışarıdan alıp buraya basar
-            }
-            .padding()
-            .background(Color.green.opacity(0.05))
-            .cornerRadius(20)
+            Text(title).font(.subheadline).foregroundColor(.gray).padding(.leading, 5)
+            VStack(spacing: 18) { content() }.padding().background(Color.green.opacity(0.05)).cornerRadius(20)
         }
     }
 }
+
 struct MenuItemRow: View {
     let item: MenuItem
     var body: some View {
@@ -316,14 +275,19 @@ struct MenuItemRow: View {
             Image(systemName: item.icon).foregroundColor(.green.opacity(0.7)).frame(width: 25)
             Text(item.text).font(.system(size: 16))
             Spacer()
-            if item.isVerified {
-                Image(systemName: item.status ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .foregroundColor(item.status ? .green : .red)
-            } else {
-                Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
-            }
+            Image(systemName: "chevron.right").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
         }
-        
+    }
+}
+
+struct CameraPlaceholderView: View {
+    @Binding var image: Image?
+    @Environment(\.dismiss) var dismiss
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Camera Module").font(.title)
+            Button("Close") { dismiss() }.padding().background(Color.blue).foregroundColor(.white).cornerRadius(10)
+        }
     }
 }
 

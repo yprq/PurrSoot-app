@@ -5,12 +5,12 @@ struct AddPetView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var viewModel: PetManager
     
-    // Form Verileri
+    // MARK: - Form Verileri
     @State private var name = ""
     @State private var species = "Dog"
-    @State private var breed = "" // Size yerine Breed (TextField) kullanıyoruz
+    @State private var breed = ""
     @State private var gender = "Male"
-    @State private var age = "1" // Seçenekler: "<1", "1", "2", "3", "4", "5+"
+    @State private var age = "1"
     @State private var description = ""
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedImageData: Data? = nil
@@ -38,7 +38,7 @@ struct AddPetView: View {
                             customPicker(title: "Gender", selection: $gender, options: ["Male", "Female"])
                         }
                         
-                        // Yaş Seçimi (Backend integer beklediği için postPet içinde dönüşecek)
+                        // Yaş Seçimi
                         customPicker(title: "Age", selection: $age, options: ["<1", "1", "2", "3", "4", "5+"])
                         
                         // Hakkında Kısmı
@@ -84,20 +84,32 @@ struct AddPetView: View {
     func savePetAction() {
         guard !name.isEmpty else { return }
         
-        // PetManager'daki postPet fonksiyonuna imageData'yı da gönderiyoruz
+        // Giriş yapan kullanıcının ID'sini UserDefaults'tan alıyoruz
+        let loggedInUserId = UserDefaults.standard.integer(forKey: "current_user_id")
+        
+        guard loggedInUserId != 0 else {
+            print("HATA: Kullanıcı girişi bulunamadı.")
+            return
+        }
+        
+        // Fonksiyonu tüm parametrelerle ve doğru completion bloğuyla çağırıyoruz
         viewModel.postPet(
+            owner_id: loggedInUserId,
             name: name,
             species: species,
             breed: breed,
             gender: gender,
             age: age,
             description: description,
-            imageData: selectedImageData // Fotoğraf verisi burada iletiliyor
-        ) { success in
-            if success {
-                dismiss()
+            imageData: selectedImageData,
+            completion: { success in
+                if success {
+                    dismiss()
+                } else {
+                    print("Pet eklenirken bir hata oluştu.")
+                }
             }
-        }
+        )
     }
 
     private var imagePlaceholder: some View {
