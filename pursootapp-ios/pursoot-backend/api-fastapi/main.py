@@ -85,22 +85,32 @@ def login(user_credentials: UserLogin):
 @app.get("/pets")
 def get_all_pets(species: Optional[str] = None, gender: Optional[str] = None, age: Optional[int] = None):
     try:
-        query = "SELECT * FROM pets WHERE 1=1"
+        # Sorguyu JOIN ile güncelledik
+        query = """
+            SELECT 
+                p.*, 
+                u.username as owner_name, 
+                u.title as owner_role, 
+                u.profile_image as owner_image
+            FROM pets p
+            LEFT JOIN users u ON p.owner_id = u.id
+            WHERE 1=1
+        """
         params = []
         
         if species and species != "All":
-            query += " AND species = %s"
+            query += " AND p.species = %s"
             params.append(species)
             
         if gender and gender != "All":
-            query += " AND gender = %s"
+            query += " AND p.gender = %s"
             params.append(gender)
             
         if age is not None:
-            query += " AND age = %s"
+            query += " AND p.age = %s"
             params.append(age)
             
-        query += " ORDER BY created_at DESC"
+        query += " ORDER BY p.created_at DESC"
         
         pets = query_db(query, tuple(params))
         return pets if pets else []

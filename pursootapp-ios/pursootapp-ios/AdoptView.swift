@@ -162,20 +162,43 @@ struct AdoptView: View {
                 ZStack {
                     cardColor.opacity(0.35)
                     
-                    if let base64String = pet.pet_image,
-                       let data = Data(base64Encoded: base64String),
-                       let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145) // Genişliği sabitledik
+                    if let imageSource = pet.pet_image {
+                        if imageSource.hasPrefix("http") {
+                            // Eğer veritabanındaki veri bir URL ise
+                            AsyncImage(url: URL(string: imageSource)) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                case .failure(_):
+                                    Image("nophoto").resizable().scaledToFill() // Hata alırsan varsayılana dön
+                                case .empty:
+                                    ProgressView() // Yüklenirken çark döner
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                            .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145)
                             .clipped()
+                        } else if let data = Data(base64Encoded: imageSource),
+                                  let uiImage = UIImage(data: data) {
+                            // Eğer veritabanındaki veri Base64 ise
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145)
+                                .clipped()
+                        } else {
+                            // Base64 değilse ama düz bir string ise (Assets içindeki resim adı gibi)
+                            Image(imageSource)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145)
+                                .clipped()
+                        }
                     } else {
                         Image("nophoto")
                             .resizable()
-                            .scaledToFill()
                             .frame(width: (UIScreen.main.bounds.width - 54) / 2, height: 145)
-                            .clipped()
                     }
                 }
                 .frame(height: 145) // ZStack yüksekliğini sabitledik
