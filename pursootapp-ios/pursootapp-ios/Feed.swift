@@ -25,6 +25,7 @@ struct AdoptingPet: Identifiable {
 
 // --- 2. ANA VIEW (FEEDS) ---
 struct FeedsView: View {
+    @Environment(\.dismiss) var dismiss
     @State private var navigateToProfile = false
     @State private var selectedCategory = "All"
     let categories = ["All", "Adoption", "News", "Articles", "Lost & Found"]
@@ -45,7 +46,7 @@ struct FeedsView: View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
                 VStack(spacing: 0) {
-                    FeedsHeaderView()
+                    FeedsHeaderView { dismiss() }
                     
                     ScrollView {
                         VStack(spacing: 20) {
@@ -255,9 +256,16 @@ struct CategoryTagView: View {
 }
 
 struct FeedsHeaderView: View {
+    var onBack: () -> Void
     var body: some View {
         HStack {
-            Image(systemName: "chevron.left").font(.title3).bold()
+            // Sadece Image vardı, Button içine aldık:
+            Button(action: { onBack() }) {
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+                    .bold()
+                    .foregroundColor(.black)
+            }
             Spacer()
             Text("Feeds").font(.headline).bold()
             Spacer()
