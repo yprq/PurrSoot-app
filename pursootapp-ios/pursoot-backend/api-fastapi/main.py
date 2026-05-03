@@ -188,6 +188,16 @@ def get_all_feeds():
         print(f"Feed Çekme Hatası: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
+@app.get("/tips")
+def get_all_tips():
+    try:
+        # Veritabanından tüm ipuçlarını çekiyoruz
+        tips = query_db("SELECT id, title, subtitle, image_name FROM tips")
+        return tips if tips else []
+    except Exception as e:
+        print(f"Tips Çekme Hatası: {e}")
+        return []
+    
 # --- DILARA: Profile (Kullanıcı Bilgisi) ---
 @app.get("/profile/{user_id}")
 def get_profile(user_id: int):
@@ -239,3 +249,5 @@ def create_post(post: PostCreate):
     except Exception as e:
         print(f"POST EKLEME HATASI: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+    

@@ -199,3 +199,6 @@ struct AdoptView: View {
         }
     }
 }
+#Preview {
+    AdoptView()
+}
