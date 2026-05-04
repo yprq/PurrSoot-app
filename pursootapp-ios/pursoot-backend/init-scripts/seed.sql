@@ -84,11 +84,10 @@ INSERT INTO users (id, username, email, password_hash, title, profile_image, don
 (5, 'Liam O’Sullivan', 'liam@farm.com', 'hash000', 'Farm Manager', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d', '800', 56),
 (6, 'Yuki Tanaka', 'yuki@exotic.jp', 'hash555', 'Exotic Pet Expert', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12', '2.5k', 95);
 
--- Tips (Bilgi Kartları)
 INSERT INTO tips (title, subtitle, image_name) VALUES
-('How to Feed?', 'Learn the basics of stray feeding', 'Frame 19'),
-('Summer Care', 'Keep them hydrated and cool', 'Frame 20'),
-('Safe Foods', 'What can dogs eat safely?', 'Frame 21');
+('How to Feed?', 'Learn the basics of stray feeding', 'petfood'),
+('Summer Care', 'Keep them hydrated and cool', 'waterpic'),
+('Safe Foods', 'What can dogs eat safely?', 'safefood');
 
 -- Hayvanlar
 INSERT INTO pets (owner_id, name, species, breed, age, gender, description, latitude, longitude, pet_image) VALUES 
