@@ -1,18 +1,19 @@
 import Foundation
 
 // --- MODELLER (Class dışında kalabilir, sorun yok) ---
+// ProfileService.swift içindeki UserProfile modelini bu şekilde güncelle
 struct UserProfile: Codable, Equatable {
     let id: Int
     let username: String
     let email: String
-    let profile_image: String
-    let follower_count: Int
-    let following_count: Int
-    let post_count: Int
-    let adopted_count: Int
-    let donation_total: String
-    let feeding_count: Int
-    let title: String
+    let profile_image: String? // Opsiyonel yap (Boş gelirse patlamaz)
+    let follower_count: Int?   // Opsiyonel yap
+    let following_count: Int?  // Opsiyonel yap
+    let post_count: Int?       // Opsiyonel yap
+    let adopted_count: Int?    // Opsiyonel yap
+    let donation_total: String // Backend "3k+" gönderdiği için String kalmalı
+    let feeding_count: Int     // Int olduğundan emin ol
+    let title: String?         // Opsiyonel yap
 }
 
 // ProfileService.swift içindeki Post struct'ını bununla değiştir:
@@ -53,14 +54,25 @@ class ProfileService: ObservableObject {
     @Published var user: UserProfile?
     @Published var posts: [Post] = []
 
+    // fetchProfile fonksiyonundaki URL kontrolü[cite: 3]
     func fetchProfile(userId: Int) {
+        // Kendi IP adresinle (örn: 192.168.x.x) değiştirmeyi dene[cite: 3]
         guard let url = URL(string: "http://127.0.0.1:8000/profile/\(userId)") else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let error = error {
+                print("Profil çekme hatası: \(error.localizedDescription)")
+                return
+            }
             if let data = data {
-                if let decoded = try? JSONDecoder().decode(UserProfile.self, from: data) {
+                do {
+                    let decoded = try JSONDecoder().decode(UserProfile.self, from: data)
                     DispatchQueue.main.async {
                         self.user = decoded
                     }
+                } catch {
+                    // Hatanın tam olarak nerede olduğunu konsolda görebilirsin[cite: 3]
+                    print("Decoding Error Details: \(error)")
                 }
             }
         }.resume()

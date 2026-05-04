@@ -125,29 +125,26 @@ struct PetDetailsView: View {
     
     @ViewBuilder
     private var petImageView: some View {
-        if let imageSource = pet.pet_image {
+        if let imageSource = pet.pet_image, !imageSource.isEmpty {
             if imageSource.hasPrefix("http") {
                 AsyncImage(url: URL(string: imageSource)) { phase in
                     if let image = phase.image {
-                        image.resizable()
-                            .scaledToFill()
-                            .frame(height: 340)
-                            .clipped()
-                    } else {
-                        placeholderImage
-                    }
+                        image.resizable().scaledToFill()
+                            .frame(height: 340).clipped()
+                    } else { placeholderImage }
                 }
-            } else {
-                // "pig-pic" ve diğer assetler
-                Image(imageSource)
+            } else if let data = Data(base64Encoded: imageSource), let uiImage = UIImage(data: data) {
+                // "Uçak" görseli (Base64) buraya düşecek[cite: 13]
+                Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 340)
+                    .frame(width: UIScreen.main.bounds.width - 40, height: 340)
                     .clipped()
+            } else {
+                Image(imageSource).resizable().scaledToFill()
+                    .frame(height: 340).clipped()
             }
-        } else {
-            placeholderImage
-        }
+        } else { placeholderImage }
     }
 
     private var placeholderImage: some View {
@@ -176,26 +173,31 @@ struct PetDetailsView: View {
     private var ownerCard: some View {
         HStack(spacing: 14) {
             Group {
-                if let ownerImg = pet.owner_image, !ownerImg.isEmpty {
-                    if ownerImg.hasPrefix("http") {
-                        AsyncImage(url: URL(string: ownerImg)) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: { ProgressView() }
-                    } else {
-                        Image(ownerImg).resizable().scaledToFill()
+                        // owner_image kontrolü
+                        if let ownerImg = pet.owner_image, !ownerImg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            if ownerImg.hasPrefix("http") {
+                                AsyncImage(url: URL(string: ownerImg)) { image in
+                                    image.resizable().scaledToFill()
+                                } placeholder: { ProgressView() }
+                            } else if let data = Data(base64Encoded: ownerImg), let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage).resizable().scaledToFill()
+                            } else {
+                                // Eğer asset adı ise (James_Profile gibi)
+                                Image(ownerImg).resizable().scaledToFill()
+                            }
+                        } else {
+                            // FOTOĞRAF YOKSA: Senin istediğin asset[cite: 1]
+                            Image("nopfp").resizable().scaledToFill()
+                        }
                     }
-                } else {
-                    Image("owner").resizable().scaledToFill()
-                }
-            }
-            .frame(width: 54, height: 54)
-            .clipShape(Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pet.owner_name ?? "Pet Owner").font(.custom("Poppins-Medium", size: 16))
-                Text(pet.owner_role ?? "Community Member").font(.custom("Poppins-Regular", size: 15)).foregroundColor(.gray)
-            }
-            Spacer()
+                    .frame(width: 54, height: 54)
+                    .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(pet.owner_name ?? "Pet Owner").font(.custom("Poppins-Medium", size: 16))
+                        Text(pet.owner_role ?? "Community Member").font(.custom("Poppins-Regular", size: 15)).foregroundColor(.gray)
+                    }
+                    Spacer()
             HStack(spacing: 12) {
                 CircleActionButton(systemName: "phone")
                 CircleActionButton(systemName: "message")

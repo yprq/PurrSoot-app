@@ -50,6 +50,9 @@ class AuthManager: ObservableObject {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     if let data = data, let decodedResponse = try? JSONDecoder().decode(AuthResponse.self, from: data) {
                         self.token = decodedResponse.access_token
+                        UserDefaults.standard.set(decodedResponse.access_token, forKey: "user_token")
+                        UserDefaults.standard.set(decodedResponse.user.id, forKey: "current_user_id")
+                        
                         self.isAuthenticated = true
                         completion(true)
                     }

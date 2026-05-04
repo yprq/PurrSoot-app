@@ -8,6 +8,7 @@ enum PetCategory: String, CaseIterable {
 }
 
 struct AdoptView: View {
+    @Environment(\.dismiss) var dismiss
     @StateObject private var petManager = PetManager()
         @State private var selectedCategory: PetCategory = .all
         @State private var showAddPetSheet = false
@@ -113,7 +114,7 @@ struct AdoptView: View {
     // MARK: - Components
     private var topBar: some View {
         HStack {
-            Button(action: {}) {
+            Button(action: {dismiss()}) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 28, weight: .medium))
                     .foregroundColor(.black)

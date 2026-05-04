@@ -12,6 +12,7 @@ struct MapPin: Identifiable {
 // MARK: - MapView
 struct MapView: View {
     
+    @Environment(\.dismiss) var dismiss // JUST ADDED THIS
     @Binding var isPresented: Bool
     
     @State private var position: MapCameraPosition = .region(MKCoordinateRegion(
@@ -140,7 +141,10 @@ struct MapView: View {
             // 3. BACK BUTTON
             VStack {
                 HStack {
-                    Button { isPresented = false } label: {
+                    Button {
+                        dismiss() // UPDATED THIS
+                        isPresented = false
+                    } label: {
                         Image(systemName: "arrow.left")
                             .padding(10)
                             .background(Color.white.opacity(0.9))
@@ -158,7 +162,10 @@ struct MapView: View {
         }
         .alert("Status", isPresented: $showAlert) {
             Button("OK") {
-                if alertMessage.contains("Successfully") { isPresented = false }
+                if alertMessage.contains("Successfully") {
+                    dismiss() // UPDATED THIS
+                    isPresented = false
+                }
             }
         } message: {
             Text(alertMessage)
@@ -227,7 +234,6 @@ struct MapView: View {
                     showAlert = true
                 }
             } else {
-                // MARK: - TEŞHİS KODU BURADA
                 let detail = String(data: data, encoding: .utf8) ?? "No detail"
                 await MainActor.run {
                     alertMessage = "Error Code: \((response as? HTTPURLResponse)?.statusCode ?? 0)\nDetail: \(detail)"
