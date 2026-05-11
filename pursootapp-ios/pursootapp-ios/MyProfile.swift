@@ -115,13 +115,29 @@ struct MyProfileView: View {
         // Düzenleme Sheet'i
         // MyProfileView içindeki .sheet kısmını bul ve değiştir:
         .sheet(isPresented: $showCreatePostView) {
-            CreatePostView(posts: $posts, profileService: profileService)
+            let loggedInUserId = UserDefaults.standard.integer(forKey: "current_user_id")
+                CreatePostView(
+                    posts: $posts,
+                    profileService: profileService,
+                    currentUserId: loggedInUserId != 0 ? loggedInUserId : 1 // ID varsa onu, yoksa 1'i gönderir
+                )
         }
         
         // NavigationStack'in kapanış parantezinden hemen önceye ekle:
         .onAppear {
-            profileService.fetchProfile(userId: 1)
-            profileService.fetchUserPosts(userId: 1)
+            let loggedInUserId = UserDefaults.standard.integer(forKey: "current_user_id")
+                print("DEBUG: MyProfileView açıldı. Okunan Kullanıcı ID -> \(loggedInUserId)")
+                
+                if loggedInUserId != 0 {
+                    // Giriş yapan kullanıcının kendi bilgilerini ve kendi postlarını çekiyoruz
+                    profileService.fetchProfile(userId: loggedInUserId)
+                    profileService.fetchUserPosts(userId: loggedInUserId)
+                } else {
+                    // Eğer UserDefaults boşsa, sistemin kilitlenmemesi için 1 nolu test kullanıcısını çeker
+                    print("DEBUG: Kullanıcı ID bulunamadı, test kullanıcısı (1) yükleniyor.")
+                    profileService.fetchProfile(userId: 1)
+                    profileService.fetchUserPosts(userId: 1)
+                }
         }
         
         // MyProfile.swift dosyasının en altı (hiçbir struct içinde değil)
@@ -169,15 +185,20 @@ struct ProfilePostCard: View {
             // --- HEADER ---
             HStack(alignment: .center) {
                 HStack(spacing: 10) {
-                    Image("Robert_Pattinson")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 38, height: 38)
-                        .clipShape(Circle())
+                    ZStack {
+                                ProfileImageView(imageName: profileService.user?.profile_image)
+                                    .scaleEffect(0.55) // Büyük profil resmini header boyutuna küçültmek için (38x38 civarı)
+                            }
+                            .frame(width: 38, height: 38)
+                            .clipShape(Circle())
                     
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(post.userName).font(.system(size: 14, weight: .bold))
-                        Text(post.userTitle).font(.system(size: 12)).foregroundColor(.gray)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(profileService.user?.username ?? post.userName)
+                                        .font(.system(size: 14, weight: .bold))
+                                    
+                                    Text(profileService.user?.title ?? "Pet Owner")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
                     }
                 }
                 
@@ -383,6 +404,7 @@ struct ProfilePostCard: View {
         @Binding var posts: [UserPost]
         @ObservedObject var profileService: ProfileService
         var editingPostID: UUID? = nil
+        var currentUserId: Int
         var isEditing: Bool { editingPostID != nil }
         
         @State private var postText: String = ""
