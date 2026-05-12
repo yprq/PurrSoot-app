@@ -17,8 +17,8 @@ struct UserProfileView: View {
     
     // Profil sahibine ait örnek postlar
     @State private var otherUserPosts = [
-        UserPost(petImage: "dog_sample", selectedImageData: nil, description: "I found this sweet dog and am looking for a loving home for them...", likeCount: 12),
-        UserPost(petImage: "cat_sample", selectedImageData: nil, description: "This beautiful cat is looking for a home...", likeCount: 8)
+        UserPost(petImage: "Rectangle 49", selectedImageData: nil, description: "I found this sweet dog and am looking for a loving home for them...", likeCount: 12),
+        UserPost(petImage: "Rectangle 45", selectedImageData: nil, description: "This beautiful cat is looking for a home...", likeCount: 8)
     ]
 
     var body: some View {

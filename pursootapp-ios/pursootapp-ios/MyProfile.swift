@@ -50,11 +50,19 @@ struct MyProfileView: View {
                         // 1. ÜST KISIM: PROFİL VE STATS
                         VStack(spacing: 20) {
                             HStack(alignment: .top, spacing: 15) {
-                                Image("Robert_Pattinson")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 80, height: 80)
-                                    .clipShape(Circle())
+                                ZStack {
+                                    // Arka planı koyu/orta gri yapıyoruz
+                                    Circle()
+                                        .fill(Color(.systemGray3))
+                                    
+                                    // Ortadaki insan silüetini tamamen beyaz yapıyoruz
+                                    Image(systemName: "person.fill")
+                                        .scaledToFit()
+                                        .foregroundColor(.white) // İnsan kısmı beyaz oldu
+                                        .padding(20) // İkonun yuvarlağın dışına taşmasını engeller
+                                }
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
                                 
                                 VStack(alignment: .leading, spacing: 10) {
                                     Text(profileService.user?.username ?? "Yükleniyor...")
@@ -243,7 +251,7 @@ struct ProfilePostCard: View {
                 } else if let assetImage = post.petImage {
                     Image(assetImage).resizable().scaledToFill()
                 } else {
-                    Color.gray.opacity(0.1)
+                Color.gray.opacity(0.1)
                 }
             }
             .frame(height: 220)
@@ -399,90 +407,185 @@ struct ProfilePostCard: View {
     }}
     
     
-    struct CreatePostView: View {
-        @Environment(\.dismiss) var dismiss
-        @Binding var posts: [UserPost]
-        @ObservedObject var profileService: ProfileService
-        var editingPostID: UUID? = nil
-        var currentUserId: Int
-        var isEditing: Bool { editingPostID != nil }
-        
-        @State private var postText: String = ""
-        @State private var selectedItem: PhotosPickerItem? = nil
-        @State private var selectedImageData: Data? = nil
-        
-        var body: some View {
-            NavigationStack {
+struct CreatePostView: View {
+    @Environment(\.dismiss) var dismiss
+    @Binding var posts: [UserPost]
+    @ObservedObject var profileService: ProfileService
+    var editingPostID: UUID? = nil
+    var currentUserId: Int
+    var isEditing: Bool { editingPostID != nil }
+    
+    @State private var postText: String = ""
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
+    
+    let assetImages = ["Rectangle 49", "Rectangle 40", "Rectangle 45"]
+    @State private var selectedAssetImage: String? = nil
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
                 VStack(spacing: 20) {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        if let data = selectedImageData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage).resizable().scaledToFill().frame(height: 250).cornerRadius(15).clipped()
+                    
+                    // --- GÖRSEL ÖNİZLEME ALANI ---
+                    Group {
+                        if let assetName = selectedAssetImage {
+                            Image(assetName)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 220)
+                                .cornerRadius(15)
+                                .clipped()
+                        } else if let data = selectedImageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 220)
+                                .cornerRadius(15)
+                                .clipped()
                         } else {
                             VStack(spacing: 12) {
-                                Image(systemName: "photo.on.rectangle.angled").font(.largeTitle).foregroundColor(.gray)
-                                Text(isEditing ? "Fotoğrafı Değiştir" : "Fotoğraf Seç").foregroundColor(.gray)
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.gray)
+                                Text("Aşağıdan bir fotoğraf seçin")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
                             }
-                            .frame(maxWidth: .infinity).frame(height: 250).background(Color.gray.opacity(0.1)).cornerRadius(15)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 180)
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(15)
                         }
                     }
-                    .onChange(of: selectedItem) { newItem in
+                    .onTapGesture {
+                        selectedAssetImage = nil
+                        selectedImageData = nil
+                    }
+                    
+                    // --- YATAY ASSET GÖRSEL SEÇİCİ ---
+                    // --- 2. YATAY ASSET GÖRSEL SEÇİCİ (Enine Daraltılmış Sürüm) ---
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sistem Görsellerinden Seç:")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.gray)
+                            .padding(.leading, 5)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(assetImages, id: \.self) { imageName in
+                                    Image(imageName)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 75, height: 75) // Görsel karelerini hafifçe küçülttük
+                                        .cornerRadius(10)
+                                        .clipped()
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(selectedAssetImage == imageName ? Color.green : Color.clear, lineWidth: 3)
+                                        )
+                                        .shadow(radius: selectedAssetImage == imageName ? 3 : 0)
+                                        .onTapGesture {
+                                            selectedImageData = nil
+                                            selectedAssetImage = imageName
+                                        }
+                                }
+                                
+                                PhotosPicker(selection: $selectedItem, matching: .images) {
+                                    VStack {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.gray)
+                                        Text("Galeriden")
+                                            .font(.caption2)
+                                            .foregroundColor(.gray)
+                                    }
+                                    .frame(width: 75, height: 75)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(10)
+                                }
+                            }
+                            .padding(.horizontal, 10) // İçeriden ekstra boşluk verdik
+                        }
+                    }
+                    .padding(.horizontal, 15) // <--- İŞTE BURASI! Tüm seçici alanı enine daraltan can alıcı dokunuş.
+                    .onChange(of: selectedItem) { oldValue, newValue in
                         Task {
-                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                selectedImageData = data
+                            if let data = try? await newValue?.loadTransferable(type: Data.self) {
+                                await MainActor.run {
+                                    selectedAssetImage = nil
+                                    selectedImageData = data
+                                }
                             }
                         }
                     }
                     
+                    // --- METİN GİRİŞ ALANI ---
                     TextEditor(text: $postText)
-                        .frame(height: 120).padding(5).overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2)))
+                        .frame(height: 100)
+                        .padding(5)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2)))
                     
                     Spacer()
                 }
                 .padding()
-                .navigationTitle(isEditing ? "Gönderiyi Düzenle" : "Yeni Gönderi")
-                .onAppear {
-                    if let id = editingPostID, let post = posts.first(where: { $0.id == id }) {
-                        postText = post.description
-                        selectedImageData = post.selectedImageData
-                    }
+            }
+            .navigationTitle(isEditing ? "Gönderiyi Düzenle" : "Yeni Gönderi")
+            .onAppear {
+                if let id = editingPostID, let post = posts.first(where: { $0.id == id }) {
+                    postText = post.description
+                    selectedImageData = post.selectedImageData
+                    selectedAssetImage = post.petImage
                 }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(isEditing ? "Güncelle" : "Paylaş") {
-                            if isEditing {
-                                // Düzenleme kısmı (şimdilik aynı kalabilir)
-                                if let index = posts.firstIndex(where: { $0.id == editingPostID }) {
-                                    posts[index] = UserPost(
-                                        petImage: posts[index].petImage,
-                                        selectedImageData: selectedImageData,
-                                        description: postText,
-                                        isLiked: posts[index].isLiked,
-                                        isSaved: posts[index].isSaved
-                                    )
-                                }
-                            } else {
-                                // --- DEĞİŞTİRDİĞİMİZ KISIM BURASI ---
-                                
-                                // 1. Backend'e (Docker/Python) gönder
-                                profileService.uploadPost(
-                                    userId: 1, // James'in ID'si
-                                    description: postText,
-                                    imageUrl: "dog_sample" // Şimdilik asset içindeki bu resmi kullansın
-                                )
-                                
-                                // 2. Ekranın hemen güncellenmesi için yerel listeye ekle
-                                let newPost = UserPost(petImage: nil, selectedImageData: selectedImageData, description: postText)
-                                posts.insert(newPost, at: 0)
-                            }
-                            dismiss()
-                        }
-                        .fontWeight(.bold)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isEditing ? "Güncelle" : "Paylaş") {
+                        // Derleyiciyi rahatlatmak için tüm lojiği aşağıdaki fonksiyona taşıdık
+                        handlePostAction()
+                        dismiss()
                     }
+                    .fontWeight(.bold)
                 }
             }
         }
-        
     }
+    
+    // --- DERLEYİCİYİ RAHATLATAN YARDIMCI FONKSİYON ---
+    private func handlePostAction() {
+            if isEditing {
+                if let index = posts.firstIndex(where: { $0.id == editingPostID }) {
+                    let currentImage = selectedAssetImage ?? posts[index].petImage
+                    posts[index] = UserPost(
+                        petImage: currentImage,
+                        selectedImageData: selectedImageData,
+                        description: postText,
+                        isLiked: posts[index].isLiked,
+                        isSaved: posts[index].isSaved
+                    )
+                }
+            } else {
+                let finalImageName = selectedAssetImage ?? "Rectangle 49"
+                
+                profileService.uploadPost(
+                    userId: currentUserId,
+                    description: postText,
+                    imageUrl: finalImageName
+                )
+                
+                let newPost = UserPost(
+                    petImage: finalImageName,
+                    selectedImageData: selectedImageData,
+                    description: postText
+                )
+                posts.insert(newPost, at: 0)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    profileService.fetchProfile(userId: currentUserId)
+                }
+            }
+        }
+}
     struct MyProfileView_Previews: PreviewProvider {
         static var previews: some View {
             // Preview için bir instance oluşturuyoruz
