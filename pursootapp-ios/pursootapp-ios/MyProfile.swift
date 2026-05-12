@@ -419,7 +419,7 @@ struct CreatePostView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedImageData: Data? = nil
     
-    let assetImages = ["Rectangle 49", "Rectangle 40", "Rectangle 45"]
+    let assetImages = ["Rectangle 49", "Rectangle 40", "Rectangle 45", "kedi", "akemal"]
     @State private var selectedAssetImage: String? = nil
     
     var body: some View {
